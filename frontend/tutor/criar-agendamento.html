@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar Agendamento — Tutor | Tutoria Acadêmica</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <script src="../javascript/api.js"></script>
+    <script src="../javascript/auth.js"></script>
+    <script src="../javascript/layout.js"></script>
+    <script src="../javascript/utils.js"></script>
+    <script defer src="../javascript/dashboard.js"></script>
+</head>
+<body data-page="tutor-criar-agendamento" data-role="tutor" data-nav="criar-agendamento">
+    <div class="app-shell">
+        <aside class="sidebar" id="sidebar"></aside>
+        <main class="main-panel">
+            <header class="page-header" id="pageHeader"></header>
+            <div class="panel">
+                <div class="panel-header"><h2>Nova sessão de tutoria</h2></div>
+                <div class="panel-body stack">
+                    <form id="agendamentoForm" class="stack">
+                        <div class="field">
+                            <label for="estudanteSelect">Estudante</label>
+                            <select id="estudanteSelect" required></select>
+                        </div>
+                        <div class="field">
+                            <label for="data">Data da sessão</label>
+                            <input type="date" id="data" required>
+                        </div>
+                        <div class="field">
+                            <label for="hora">Hora da sessão</label>
+                            <input type="time" id="hora" required>
+                        </div>
+                        <div class="field">
+                            <label for="observacoes">Observações</label>
+                            <textarea id="observacoes" placeholder="Descreva o tema ou conteúdo da sessão (opcional)"></textarea>
+                        </div>
+                        <button class="btn" type="submit">Criar Agendamento</button>
+                    </form>
+                    <div id="feedback" style="display:none;"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

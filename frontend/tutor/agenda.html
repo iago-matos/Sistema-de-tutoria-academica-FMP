@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda — Tutor | Tutoria Acadêmica</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <script src="../javascript/api.js"></script>
+    <script src="../javascript/auth.js"></script>
+    <script src="../javascript/layout.js"></script>
+    <script src="../javascript/utils.js"></script>
+    <script defer src="../javascript/dashboard.js"></script>
+</head>
+<body data-page="tutor-agenda" data-role="tutor" data-nav="agenda">
+<div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-panel">
+        <header class="page-header" id="pageHeader"></header>
+        <div id="loading" class="loading-state" style="display:none;">Carregando agenda...</div>
+
+        <!-- CALENDAR TOOLBAR -->
+        <div class="page-header-row" style="margin-bottom:16px;">
+            <div class="cal-legend">
+                <div class="cal-legend-item">
+                    <span class="cal-legend-dot" style="background:#cbd5e1;border:1.5px dashed #94a3b8;"></span>
+                    <span>Horário vazio — clique para agendar</span>
+                </div>
+                <div class="cal-legend-item">
+                    <span class="cal-legend-dot" style="background:var(--blue);"></span>
+                    <span>Sessão agendada — clique para ver detalhes</span>
+                </div>
+            </div>
+            <div class="cal-toolbar">
+                <div class="btn-group">
+                    <button class="btn active" id="btnSemana" type="button">Semana</button>
+                    <button class="btn" id="btnMes" type="button" style="opacity:0.5;cursor:not-allowed;" disabled>Mês</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- WEEK CALENDAR -->
+        <div class="cal-wrap" id="calWrap">
+            <div class="cal-grid" id="calHeader">
+                <div class="cal-header-cell"></div>
+                <!-- days injected by JS -->
+            </div>
+            <div class="cal-body" id="calBody">
+                <!-- rows injected by JS -->
+            </div>
+        </div>
+
+        <!-- MODAL Nova Sessão -->
+        <div class="modal-overlay" id="modalOverlay">
+            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+                <div class="modal-header">
+                    <div>
+                        <div class="modal-title" id="modalTitle">Nova Sessão</div>
+                        <div class="modal-subtitle" id="modalSubtitle"></div>
+                    </div>
+                    <button class="modal-close" id="modalClose" aria-label="Fechar">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+                <form class="modal-body" id="modalForm">
+                    <div class="form-row">
+                        <div class="field">
+                            <label for="modalData">Data</label>
+                            <input type="date" id="modalData" required>
+                        </div>
+                        <div class="field">
+                            <label for="modalHora">Horário</label>
+                            <input type="time" id="modalHora" required>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>Duração</label>
+                        <div class="duration-group" id="durationGroup">
+                            <button type="button" class="duration-pill" data-value="30">30 min</button>
+                            <button type="button" class="duration-pill active" data-value="60">1 hora</button>
+                            <button type="button" class="duration-pill" data-value="90">1h30</button>
+                            <button type="button" class="duration-pill" data-value="120">2 horas</button>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="modalObs">Observações <span style="color:var(--subtle);font-weight:400;">(opcional)</span></label>
+                        <textarea id="modalObs" placeholder="Ex: Trazer exercícios da semana passada..."></textarea>
+                    </div>
+                </form>
+                <div class="modal-footer">
+                    <button class="btn secondary" id="modalCancel" type="button">Cancelar</button>
+                    <button class="btn" id="modalSubmit" type="button">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        Criar sessão
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="feedback" style="display:none;margin-top:16px;"></div>
+    </main>
+</div>
+
+<button class="help-btn" type="button" title="Ajuda">?</button>
+
+<script>
+// ── Calendar logic ───────────────────────────────────────────
+const HOURS = ['8h','9h','10h','11h','12h','13h','14h','15h','16h','17h'];
+const HOUR_VALUES = [8,9,10,11,12,13,14,15,16,17];
+const SESSION_COLORS = ['blue','purple','green','teal'];
+const DAYS_PT = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+let currentWeekStart = getWeekStart(new Date());
+let agendamentos = [];
+let tutorId = null;
+
+function getWeekStart(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    d.setDate(d.getDate() - day);
+    d.setHours(0,0,0,0);
+    return d;
+}
+
+function formatDate(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+}
+
+function formatDisplayDate(dateStr) {
+    if (!dateStr) return '';
+    const [y,m,d] = dateStr.split('-');
+    return d + '/' + m + '/' + y;
+}
+
+function buildHeader(weekStart) {
+    const header = document.getElementById('calHeader');
+    let html = '<div class="cal-header-cell"></div>';
+    const today = formatDate(new Date());
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(weekStart);
+        d.setDate(d.getDate() + i);
+        const isToday = formatDate(d) === today;
+        html += `<div class="cal-header-cell${isToday ? ' today' : ''}">
+            <div class="day-label">${DAYS_PT[d.getDay()]}</div>
+            <div class="day-num">${d.getDate()}</div>
+        </div>`;
+    }
+    header.innerHTML = html;
+}
+
+function buildBody(weekStart, sessions) {
+    const body = document.getElementById('calBody');
+    let html = '';
+    HOUR_VALUES.forEach(function(hour, idx) {
+        html += '<div class="cal-row">';
+        html += `<div class="cal-time">${HOURS[idx]}</div>`;
+        for (let col = 0; col < 7; col++) {
+            const d = new Date(weekStart);
+            d.setDate(d.getDate() + col);
+            const dateStr = formatDate(d);
+            const timeStr = String(hour).padStart(2,'0') + ':00';
+            // find sessions in this slot
+            const slot = sessions.filter(function(s) {
+                return s.data === dateStr && s.hora && s.hora.startsWith(String(hour).padStart(2,'0'));
+            });
+            let inner = `<div class="cal-cell-add">+ Sessão</div>`;
+            slot.forEach(function(s, si) {
+                const name = s.estudante && s.estudante.usuario ? s.estudante.usuario.nome : 'Estudante';
+                const firstName = name.split(' ').slice(0,2).join(' ');
+                const disc = s.tutor ? s.tutor.disciplina || '' : '';
+                const color = SESSION_COLORS[si % SESSION_COLORS.length];
+                inner += `<div class="cal-session ${color}" data-session-id="${s.id}" title="${name} — ${disc}">${firstName}${disc ? ' — ' + disc : ''}</div>`;
+            });
+            html += `<div class="cal-cell" data-date="${dateStr}" data-hour="${timeStr}">${inner}</div>`;
+        }
+        html += '</div>';
+    });
+    body.innerHTML = html;
+    // bind cell clicks
+    document.querySelectorAll('.cal-cell').forEach(function(cell) {
+        cell.addEventListener('click', function(e) {
+            if (e.target.closest('.cal-session')) return;
+            openModal(cell.dataset.date, cell.dataset.hour);
+        });
+    });
+    document.querySelectorAll('.cal-session').forEach(function(el) {
+        el.addEventListener('click', function(e) {
+            e.stopPropagation();
+            // future: show session detail
+        });
+    });
+}
+
+// ── Modal ────────────────────────────────────────────────────
+function openModal(date, hour) {
+    document.getElementById('modalData').value = date || formatDate(new Date());
+    document.getElementById('modalHora').value = hour || '09:00';
+    const sub = (date ? formatDisplayDate(date) : '') + (hour ? ' às ' + hour.substring(0,5) : '');
+    document.getElementById('modalSubtitle').textContent = sub;
+    document.getElementById('modalOverlay').classList.add('open');
+    document.getElementById('modalData').focus();
+}
+
+function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+    document.getElementById('modalForm').reset();
+    document.querySelectorAll('.duration-pill').forEach(function(p) { p.classList.remove('active'); });
+    document.querySelector('.duration-pill[data-value="60"]').classList.add('active');
+    document.getElementById('feedback').style.display = 'none';
+}
+
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalCancel').addEventListener('click', closeModal);
+document.getElementById('modalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+});
+
+document.getElementById('durationGroup').addEventListener('click', function(e) {
+    const pill = e.target.closest('.duration-pill');
+    if (!pill) return;
+    document.querySelectorAll('.duration-pill').forEach(function(p) { p.classList.remove('active'); });
+    pill.classList.add('active');
+});
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeModal();
+});
+
+document.getElementById('modalSubmit').addEventListener('click', async function() {
+    const data = document.getElementById('modalData').value;
+    const hora = document.getElementById('modalHora').value;
+    const obs = document.getElementById('modalObs').value.trim();
+
+    if (!data || !hora) {
+        showFeedback('feedback', 'Informe data e horário da sessão.', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('modalSubmit');
+    btn.disabled = true;
+    btn.textContent = 'Criando...';
+
+    try {
+        // Cria a sessão com status PENDENTE sem estudante vinculado ainda.
+        // O estudante será associado quando fizer a solicitação de agendamento.
+        await createAgendamento({
+            status: 'PENDENTE',
+            data: data,
+            hora: hora,
+            observacoes: obs || null,
+            tutor: { id: Number(tutorId) }
+        });
+        closeModal();
+        await refreshCalendar();
+    } catch (err) {
+        showFeedback('feedback', err.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Criar sessão';
+    }
+});
+
+async function refreshCalendar() {
+    if (!tutorId) return;
+    agendamentos = await fetchTutorAgendamentos(tutorId);
+    buildBody(currentWeekStart, agendamentos);
+}
+
+// ── Init ─────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async function() {
+    // handled by dashboard.js PAGE_LOADERS for auth + appShell
+});
+</script>
+</body>
+</html>

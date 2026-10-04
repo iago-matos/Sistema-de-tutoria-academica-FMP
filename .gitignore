@@ -1,0 +1,29 @@
+# Build Maven
+target/
+*.jar
+*.war
+
+# Logs
+*.log
+
+# IDE - IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# IDE - Eclipse / VS Code Java
+.classpath
+.project
+.settings/
+.factorypath
+bin/
+
+# Sistema operacional
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Variaveis de ambiente locais
+.env
+*.local.properties

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avaliações — Estudante | Tutoria Acadêmica</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <script src="../javascript/api.js"></script>
+    <script src="../javascript/auth.js"></script>
+    <script src="../javascript/layout.js"></script>
+    <script src="../javascript/utils.js"></script>
+    <script defer src="../javascript/dashboard.js"></script>
+</head>
+<body data-page="estudante-avaliacoes" data-role="estudante" data-nav="avaliacoes">
+    <div class="app-shell">
+        <aside class="sidebar" id="sidebar"></aside>
+        <main class="main-panel">
+            <header class="page-header" id="pageHeader"></header>
+            <section class="content-grid two-col">
+                <section>
+                    <div class="section-header"><h2>Minhas avaliações</h2></div>
+                    <div id="avaliacoesLista"></div>
+                </section>
+                <section class="panel">
+                    <div class="panel-header"><h2>Nova avaliação</h2></div>
+                    <div class="panel-body stack">
+                        <form id="avaliacaoForm" class="stack">
+                            <div class="field"><label for="tutorSelect">Tutor</label><select id="tutorSelect" required></select></div>
+                            <div class="field"><label for="nota">Nota (1-5)</label><input type="number" id="nota" min="1" max="5" required></div>
+                            <div class="field"><label for="dataAvaliacao">Data</label><input type="date" id="dataAvaliacao" required></div>
+                            <div class="field"><label for="horaAvaliacao">Hora</label><input type="time" id="horaAvaliacao" required></div>
+                            <div class="field"><label for="comentario">Comentário (integração pendente)</label><textarea id="comentario" disabled placeholder="Disponível quando o backend suportar comentário"></textarea></div>
+                            <button class="btn" type="submit">Registrar avaliação</button>
+                        </form>
+                        <div id="feedback" style="display:none;"></div>
+                    </div>
+                </section>
+            </section>
+        </main>
+    </div>
+</body>
+</html>
