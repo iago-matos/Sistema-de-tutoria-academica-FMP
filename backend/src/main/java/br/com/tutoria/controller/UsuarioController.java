@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.com.tutoria.Security.UserSpringSecurity;
+import br.com.tutoria.dto.AlterarSenhaDTO;
+import br.com.tutoria.dto.AtualizarUsuarioDTO;
 import br.com.tutoria.dto.CadastroRequestDTO;
 import br.com.tutoria.dto.UsuarioMeDTO;
 import br.com.tutoria.dto.UsuarioResumoDTO;
@@ -76,13 +78,24 @@ public class UsuarioController {
         return usuarioService.buscarPorId(id);
     }
 
+    // Nome e e-mail. A senha nao muda por aqui (antes, editar o nome pela tela
+    // de usuarios do admin redefinia a senha para "placeholder").
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or #user.id == #id")
     public Usuario atualizar(
             @PathVariable Long id,
-            @RequestBody Usuario usuario,
+            @Valid @RequestBody AtualizarUsuarioDTO dados,
             @AuthenticationPrincipal UserSpringSecurity user) {
-        return usuarioService.atualizar(id, usuario);
+        return usuarioService.atualizar(id, dados);
+    }
+
+    // O proprio usuario troca a senha, confirmando a senha atual
+    @PutMapping("/me/senha")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void alterarSenha(
+            @Valid @RequestBody AlterarSenhaDTO dados,
+            @AuthenticationPrincipal UserSpringSecurity user) {
+        usuarioService.alterarSenha(user.getId(), dados);
     }
 
     @DeleteMapping("/{id}")

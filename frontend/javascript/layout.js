@@ -10,7 +10,8 @@ const ICONS = {
     check:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
     x:        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
     settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
-    plus:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
+    plus:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+    lock:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'
 };
 
 const NAV_MENUS = {
@@ -74,6 +75,8 @@ function renderSidebar(role, activeNav, notifCount) {
         + '<div class="sidebar-footer">'
         + '<a class="nav-link" href="#" data-action="notifications">' + icon("bell")
         + "<span>Notificações</span>" + badge + "</a>"
+        + '<button class="nav-link" type="button" data-action="alterar-senha">'
+        + icon("lock") + "<span>Alterar senha</span></button>"
         + '<button class="nav-link" type="button" data-action="logout">'
         + icon("logout") + "<span>Sair</span></button>"
         + "</div>";
@@ -132,12 +135,91 @@ function initAppShell(options) {
     renderPageHeader(options && options.header ? options.header : { mode: "greeting" });
     bindLogoutButtons();
 
+    const senhaBtn = document.querySelector("[data-action='alterar-senha']");
+    if (senhaBtn) {
+        senhaBtn.addEventListener("click", abrirModalSenha);
+    }
+
     const notifBtn = document.querySelector("[data-action='notifications']");
     if (notifBtn) {
         notifBtn.addEventListener("click", function (event) {
             event.preventDefault();
         });
     }
+}
+
+// ── Modal "Alterar senha" (disponivel em todas as paginas logadas) ──────────
+function senhaField(id, label, autocomplete) {
+    return '<div class="field"><label for="' + id + '">' + label + "</label>"
+        + '<input type="password" id="' + id + '" required minlength="8" maxlength="72" autocomplete="' + autocomplete + '"></div>';
+}
+
+function criarModalSenha() {
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+    overlay.id = "senhaModalOverlay";
+    overlay.innerHTML = '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="senhaModalTitle">'
+        + '<div class="modal-header"><div>'
+        + '<div class="modal-title" id="senhaModalTitle">Alterar senha</div>'
+        + '<div class="modal-subtitle">A nova senha precisa ter no mínimo 8 caracteres.</div>'
+        + '</div><button class="modal-close" type="button" data-action="fechar-senha" aria-label="Fechar">' + icon("x") + "</button></div>"
+        + '<form class="modal-body" id="senhaForm">'
+        + senhaField("senhaAtual", "Senha atual", "current-password")
+        + senhaField("novaSenha", "Nova senha", "new-password")
+        + senhaField("confirmarSenha", "Confirme a nova senha", "new-password")
+        + '<div id="senhaFeedback" style="display:none;"></div>'
+        + "</form>"
+        + '<div class="modal-footer">'
+        + '<button class="btn secondary" type="button" data-action="fechar-senha">Cancelar</button>'
+        + '<button class="btn" type="submit" form="senhaForm">Salvar nova senha</button>'
+        + "</div></div>";
+    document.body.appendChild(overlay);
+
+    overlay.querySelectorAll("[data-action='fechar-senha']").forEach(function (btn) {
+        btn.addEventListener("click", fecharModalSenha);
+    });
+    overlay.addEventListener("click", function (event) {
+        if (event.target === overlay) fecharModalSenha();
+    });
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") fecharModalSenha();
+    });
+
+    document.getElementById("senhaForm").addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        const senhaAtual = document.getElementById("senhaAtual").value;
+        const novaSenha = document.getElementById("novaSenha").value;
+
+        if (novaSenha !== document.getElementById("confirmarSenha").value) {
+            showFeedback("senhaFeedback", "A confirmação não confere com a nova senha.", "error");
+            return;
+        }
+
+        try {
+            await putJSON("/usuario/me/senha", { senhaAtual: senhaAtual, novaSenha: novaSenha });
+            showFeedback("senhaFeedback", "Senha alterada com sucesso!", "success");
+            setTimeout(fecharModalSenha, 1500);
+        } catch (error) {
+            showFeedback("senhaFeedback", error.message, "error");
+        }
+    });
+
+    return overlay;
+}
+
+function abrirModalSenha() {
+    const overlay = document.getElementById("senhaModalOverlay") || criarModalSenha();
+    overlay.classList.add("open");
+    document.getElementById("senhaAtual").focus();
+}
+
+function fecharModalSenha() {
+    const overlay = document.getElementById("senhaModalOverlay");
+    if (!overlay) return;
+    overlay.classList.remove("open");
+    document.getElementById("senhaForm").reset();
+    document.getElementById("senhaFeedback").style.display = "none";
 }
 
 function bindSearchInput(onSearch) {

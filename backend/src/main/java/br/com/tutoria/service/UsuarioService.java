@@ -1,4 +1,6 @@
 package br.com.tutoria.service;
+import br.com.tutoria.dto.AlterarSenhaDTO;
+import br.com.tutoria.dto.AtualizarUsuarioDTO;
 import br.com.tutoria.dto.CadastroRequestDTO;
 import br.com.tutoria.dto.UsuarioMeDTO;
 import br.com.tutoria.dto.UsuarioResumoDTO;
@@ -180,14 +182,14 @@ public class UsuarioService {
     }
 
     @Transactional
-    public Usuario atualizar(Long id, Usuario dados) {
+    public Usuario atualizar(Long id, AtualizarUsuarioDTO dados) {
 
         Usuario existente = usuarioRepository.findById(id)
                 .orElseThrow(() ->
                         new ObjectNotFoundException(
                                 "Usuario nao encontrado: " + id));
 
-        String novoEmail = normalizarEmail(dados.getEmail());
+        String novoEmail = normalizarEmail(dados.email());
 
         if (novoEmail != null
                 && !novoEmail.equals(existente.getEmail())) {
@@ -198,22 +200,32 @@ public class UsuarioService {
             });
         }
 
-        if (dados.getNome() != null) {
-            existente.setNome(dados.getNome());
+        if (dados.nome() != null) {
+            existente.setNome(exigirTexto(dados.nome(), "Nome não pode ficar em branco"));
         }
 
         if (novoEmail != null) {
             existente.setEmail(novoEmail);
         }
 
-        if (dados.getSenha() != null) {
+        return usuarioRepository.save(existente);
+    }
 
-            // Atualiza senha criptografada
-            existente.setSenha(
-                    passwordEncoder.encode(dados.getSenha()));
+    @Transactional
+    public void alterarSenha(Long usuarioId, AlterarSenhaDTO dados) {
+
+        Usuario usuario = buscarPorId(usuarioId);
+
+        if (!passwordEncoder.matches(dados.senhaAtual(), usuario.getSenha())) {
+            throw new IllegalArgumentException("Senha atual incorreta");
         }
 
-        return usuarioRepository.save(existente);
+        if (passwordEncoder.matches(dados.novaSenha(), usuario.getSenha())) {
+            throw new IllegalArgumentException("A nova senha deve ser diferente da atual");
+        }
+
+        usuario.setSenha(passwordEncoder.encode(dados.novaSenha()));
+        usuarioRepository.save(usuario);
     }
 
     @Transactional

@@ -452,11 +452,8 @@ async function loadAdminUsuarios() {
             if (!novoNome) return;
 
             try {
-                await putJSON("/usuario/" + id, {
-                    nome: novoNome,
-                    email: usuario.email,
-                    senha: usuario.senha || "placeholder"
-                });
+                // Envia so o nome: a senha nunca muda por esta tela
+                await putJSON("/usuario/" + id, { nome: novoNome });
                 await loadAdminUsuarios();
             } catch (error) {
                 alert(error.message);
