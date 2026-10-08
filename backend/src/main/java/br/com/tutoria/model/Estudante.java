@@ -40,7 +40,9 @@ public class Estudante {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false, unique = true)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    // Dentro de um perfil, o usuario aparece so com id e nome: e-mail, perfis
+    // e status ficam restritos ao endpoint de usuarios (somente ADMIN)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "email", "profiles", "status"})
     private Usuario usuario;
 
     @OneToMany(mappedBy = "estudante")

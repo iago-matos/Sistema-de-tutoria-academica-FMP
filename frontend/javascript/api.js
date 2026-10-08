@@ -213,8 +213,9 @@ async function createAgendamento(payload) {
     return postJSON("/agendamento", payload);
 }
 
-async function solicitarAgendamento(agendamentoId, estudanteId) {
-    return putJSON("/agendamento/" + agendamentoId + "/solicitar", { estudanteId: estudanteId });
+// O backend identifica o estudante pelo token; nao e preciso enviar o ID
+async function solicitarAgendamento(agendamentoId) {
+    return putJSON("/agendamento/" + agendamentoId + "/solicitar", {});
 }
 
 async function updateAgendamento(id, payload) {

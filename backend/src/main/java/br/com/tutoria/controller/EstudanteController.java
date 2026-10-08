@@ -1,12 +1,16 @@
 package br.com.tutoria.controller;
 
+import br.com.tutoria.Security.UserSpringSecurity;
 import br.com.tutoria.model.Agendamento;
 import br.com.tutoria.model.Avaliacao;
 import br.com.tutoria.model.Estudante;
 import br.com.tutoria.service.AgendamentoService;
+import br.com.tutoria.service.AutorizacaoService;
 import br.com.tutoria.service.AvaliacaoService;
 import br.com.tutoria.service.EstudanteService;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,50 +30,68 @@ public class EstudanteController {
     private final EstudanteService estudanteService;
     private final AgendamentoService agendamentoService;
     private final AvaliacaoService avaliacaoService;
+    private final AutorizacaoService autorizacaoService;
 
     public EstudanteController(
             EstudanteService estudanteService,
             AgendamentoService agendamentoService,
-            AvaliacaoService avaliacaoService) {
+            AvaliacaoService avaliacaoService,
+            AutorizacaoService autorizacaoService) {
         this.estudanteService = estudanteService;
         this.agendamentoService = agendamentoService;
         this.avaliacaoService = avaliacaoService;
+        this.autorizacaoService = autorizacaoService;
     }
 
+    // Perfis de estudante nascem no cadastro; criar direto e so para administradores
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ADMIN')")
     public Estudante salvar(@RequestBody Estudante estudante) {
         return estudanteService.salvar(estudante);
     }
 
+    // A lista completa de estudantes e restrita aos administradores
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public List<Estudante> listarTodos() {
         return estudanteService.listarTodos();
     }
 
     @GetMapping("/{id}")
-    public Estudante buscarPorId(@PathVariable Long id) {
+    public Estudante buscarPorId(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserSpringSecurity usuarioLogado) {
+        autorizacaoService.exigirAcessoAoEstudante(id, usuarioLogado);
         return estudanteService.buscarPorId(id);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public Estudante atualizar(@PathVariable Long id, @RequestBody Estudante estudante) {
         return estudanteService.atualizar(id, estudante);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ADMIN')")
     public void deletar(@PathVariable Long id) {
         estudanteService.deletar(id);
     }
 
     @GetMapping("/{id}/agendamentos")
-    public List<Agendamento> listarAgendamentos(@PathVariable Long id) {
+    public List<Agendamento> listarAgendamentos(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserSpringSecurity usuarioLogado) {
+        autorizacaoService.exigirAcessoAoEstudante(id, usuarioLogado);
         return agendamentoService.listarAgendamentosPorEstudante(id);
     }
 
     @GetMapping("/{id}/avaliacoes")
-    public List<Avaliacao> listarAvaliacoes(@PathVariable Long id) {
+    public List<Avaliacao> listarAvaliacoes(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserSpringSecurity usuarioLogado) {
+        autorizacaoService.exigirAcessoAoEstudante(id, usuarioLogado);
         return avaliacaoService.listarAvaliacoesPorEstudante(id);
     }
 }

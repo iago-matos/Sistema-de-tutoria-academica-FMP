@@ -8,7 +8,6 @@ import br.com.tutoria.model.Usuario;
 import br.com.tutoria.model.enums.ProfileEnum;
 import br.com.tutoria.model.enums.UsuarioStatusEnum;
 import br.com.tutoria.model.enums.UsuarioTipoEnum;
-import br.com.tutoria.repository.CoordenadorRepository;
 import br.com.tutoria.repository.EstudanteRepository;
 import br.com.tutoria.repository.TutorRepository;
 import br.com.tutoria.repository.UsuarioRepository;
@@ -29,20 +28,17 @@ public class UsuarioService {
     private final PasswordEncoder passwordEncoder;
     private final EstudanteRepository estudanteRepository;
     private final TutorRepository tutorRepository;
-    private final CoordenadorRepository coordenadorRepository;
 
     public UsuarioService(
             UsuarioRepository usuarioRepository,
             PasswordEncoder passwordEncoder,
             EstudanteRepository estudanteRepository,
-            TutorRepository tutorRepository,
-            CoordenadorRepository coordenadorRepository) {
+            TutorRepository tutorRepository) {
 
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.estudanteRepository = estudanteRepository;
         this.tutorRepository = tutorRepository;
-        this.coordenadorRepository = coordenadorRepository;
     }
 
     // Evita contas duplicadas como "Ana@x.com" e "ana@x.com"
@@ -151,17 +147,24 @@ public class UsuarioService {
 
         UsuarioTipoEnum tipo = resolverTipo(usuario);
 
+        Long estudanteId = estudanteRepository.findByUsuario_Id(usuario.getId())
+                .map(Estudante::getId).orElse(null);
+        Long tutorId = tutorRepository.findByUsuario_Id(usuario.getId())
+                .map(Tutor::getId).orElse(null);
+
         return new UsuarioMeDTO(
                 usuario.getId(),
                 usuario.getNome(),
                 usuario.getEmail(),
-                tipo);
+                tipo,
+                estudanteId,
+                tutorId);
     }
 
+    // Ser coordenador nao torna ninguem administrador: so o perfil ADMIN
     private UsuarioTipoEnum resolverTipo(Usuario usuario) {
 
-        if (usuario.getProfiles().contains(ProfileEnum.ADMIN)
-                || coordenadorRepository.findByUsuario_Id(usuario.getId()).isPresent()) {
+        if (usuario.getProfiles().contains(ProfileEnum.ADMIN)) {
             return UsuarioTipoEnum.ADMIN;
         }
 

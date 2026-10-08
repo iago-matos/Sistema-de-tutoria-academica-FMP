@@ -145,19 +145,6 @@ function renderStars(rating, reviewCount) {
         + countLabel + "</span>";
 }
 
-function computeTutorStats(tutorId, avaliacoes) {
-    const list = (avaliacoes || []).filter(function (a) {
-        return a.tutor && String(a.tutor.id) === String(tutorId);
-    });
-
-    if (!list.length) {
-        return { average: 0, count: 0 };
-    }
-
-    const sum = list.reduce(function (acc, a) { return acc + (a.nota || 0); }, 0);
-    return { average: sum / list.length, count: list.length };
-}
-
 function computeAverageRating(avaliacoes) {
     if (!avaliacoes || !avaliacoes.length) return "0.0";
     const sum = avaliacoes.reduce(function (acc, a) { return acc + (a.nota || 0); }, 0);
@@ -168,7 +155,7 @@ function countByStatus(agendamentos, predicate) {
     return (agendamentos || []).filter(function(a) { return predicate(a.status); }).length;
 }
 
-function filterTutores(tutores, query, avaliacoes) {
+function filterTutores(tutores, query) {
     if (!query) return tutores || [];
 
     return (tutores || []).filter(function (tutor) {
@@ -260,7 +247,8 @@ function renderPendingRequests(id, agendamentos, options) {
     }).join("");
 }
 
-function renderTutorCards(id, tutores, avaliacoes) {
+// A media e o total de avaliacoes vem calculados pelo backend (GET /tutor)
+function renderTutorCards(id, tutores) {
     const target = document.getElementById(id);
     if (!target) return;
 
@@ -271,16 +259,17 @@ function renderTutorCards(id, tutores, avaliacoes) {
 
     target.innerHTML = tutores.map(function (tutor, index) {
         const name = formatUsuario(tutor.usuario);
-        const stats = computeTutorStats(tutor.id, avaliacoes);
-        const rating = stats.count ? stats.average : 4.5 + (index % 5) * 0.1;
-        const reviewCount = stats.count || 0;
+        const reviewCount = tutor.totalAvaliacoes || 0;
+        const rating = reviewCount
+            ? renderStars(tutor.mediaAvaliacoes, reviewCount)
+            : "<span class=\"review-count\">Sem avaliações ainda</span>";
 
         return "<div class=\"tutor-card\" data-tutor-id=\"" + escapeHTML(tutor.id) + "\">"
             + "<div class=\"avatar " + avatarColorClass(index) + "\">" + escapeHTML(getInitials(name)) + "</div>"
             + "<div class=\"item-info\">"
             + "<p class=\"item-name\">" + escapeHTML(name) + "</p>"
             + "<p class=\"item-meta\">" + escapeHTML(tutor.disciplina) + "</p>"
-            + renderStars(rating, reviewCount)
+            + rating
             + "<span class=\"availability-pill\">Disponível: horários a combinar</span>"
             + "</div>"
             + "<button class=\"btn\" type=\"button\" data-action=\"solicitar-tutoria\" data-tutor-id=\"" + escapeHTML(tutor.id) + "\">Solicitar Tutoria</button>"
@@ -402,12 +391,6 @@ function bindSolicitarTutoriaButtons() {
     document.querySelectorAll("[data-action='solicitar-tutoria']").forEach(function (button) {
         button.addEventListener("click", async function () {
             const tutorId = button.getAttribute("data-tutor-id");
-            const estudanteId = localStorage.getItem("estudanteId");
-
-            if (!estudanteId) {
-                alert("Perfil de estudante não encontrado. Faça login novamente.");
-                return;
-            }
 
             button.disabled = true;
             button.textContent = "Solicitando...";
@@ -421,7 +404,7 @@ function bindSolicitarTutoriaButtons() {
                     return;
                 }
 
-                await solicitarAgendamento(sessoes[0].id, Number(estudanteId));
+                await solicitarAgendamento(sessoes[0].id);
 
                 button.textContent = "Aguardando aprovação";
                 button.classList.add("secondary");

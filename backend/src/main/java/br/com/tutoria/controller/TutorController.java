@@ -1,12 +1,17 @@
 package br.com.tutoria.controller;
 
+import br.com.tutoria.Security.UserSpringSecurity;
+import br.com.tutoria.dto.TutorResumoDTO;
 import br.com.tutoria.model.Agendamento;
 import br.com.tutoria.model.Avaliacao;
 import br.com.tutoria.model.Tutor;
 import br.com.tutoria.service.AgendamentoService;
+import br.com.tutoria.service.AutorizacaoService;
 import br.com.tutoria.service.AvaliacaoService;
 import br.com.tutoria.service.TutorService;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,50 +31,64 @@ public class TutorController {
     private final TutorService tutorService;
     private final AgendamentoService agendamentoService;
     private final AvaliacaoService avaliacaoService;
+    private final AutorizacaoService autorizacaoService;
 
     public TutorController(
             TutorService tutorService,
             AgendamentoService agendamentoService,
-            AvaliacaoService avaliacaoService) {
+            AvaliacaoService avaliacaoService,
+            AutorizacaoService autorizacaoService) {
         this.tutorService = tutorService;
         this.agendamentoService = agendamentoService;
         this.avaliacaoService = avaliacaoService;
+        this.autorizacaoService = autorizacaoService;
     }
 
+    // Perfis de tutor nascem no cadastro; criar direto e so para administradores
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ADMIN')")
     public Tutor salvar(@RequestBody Tutor tutor) {
         return tutorService.salvar(tutor);
     }
 
+    // Qualquer usuario logado: tutores ativos, sem e-mail, com media das avaliacoes
     @GetMapping
-    public List<Tutor> listarTodos() {
-        return tutorService.listarTodos();
+    public List<TutorResumoDTO> listarTodos() {
+        return tutorService.listarResumos();
     }
 
     @GetMapping("/{id}")
-    public Tutor buscarPorId(@PathVariable Long id) {
-        return tutorService.buscarPorId(id);
+    public TutorResumoDTO buscarPorId(@PathVariable Long id) {
+        return tutorService.buscarResumo(id);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public Tutor atualizar(@PathVariable Long id, @RequestBody Tutor tutor) {
         return tutorService.atualizar(id, tutor);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ADMIN')")
     public void deletar(@PathVariable Long id) {
         tutorService.deletar(id);
     }
 
     @GetMapping("/{id}/agendamentos")
-    public List<Agendamento> listarAgendamentos(@PathVariable Long id) {
+    public List<Agendamento> listarAgendamentos(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserSpringSecurity usuarioLogado) {
+        autorizacaoService.exigirAcessoAoTutor(id, usuarioLogado);
         return agendamentoService.listarAgendamentosPorTutor(id);
     }
 
     @GetMapping("/{id}/avaliacoes")
-    public List<Avaliacao> listarAvaliacoes(@PathVariable Long id) {
+    public List<Avaliacao> listarAvaliacoes(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserSpringSecurity usuarioLogado) {
+        autorizacaoService.exigirAcessoAoTutor(id, usuarioLogado);
         return avaliacaoService.listarAvaliacoesPorTutor(id);
     }
 }

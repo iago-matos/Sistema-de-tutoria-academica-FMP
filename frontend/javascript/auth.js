@@ -54,50 +54,27 @@ async function loadCurrentUser(forceRefresh) {
     return user;
 }
 
+// O GET /usuario/me ja informa os IDs dos perfis do usuario logado
 async function resolveProfileIds(user) {
     if (!user) {
         return { estudanteId: null, tutorId: null };
     }
 
-    let estudanteId = localStorage.getItem("estudanteId");
-    let tutorId = localStorage.getItem("tutorId");
-
-    // Sempre re-resolve para garantir consistência após login/troca de sessão
-    if (user.tipo === "ESTUDANTE" || user.tipo === "ADMIN") {
-        try {
-            const estudantes = await fetchEstudantes();
-            const match = estudantes.find(function (item) {
-                // cast explícito para evitar comparação Number vs String
-                return item.usuario && String(item.usuario.id) === String(user.id);
-            });
-            if (match) {
-                estudanteId = String(match.id);
-                localStorage.setItem("estudanteId", estudanteId);
-            }
-        } catch (e) {
-            // não bloqueia se a chamada falhar
-        }
+    // Sessoes salvas antes desta versao nao tem os IDs: busca de novo
+    if (!("estudanteId" in user)) {
+        user = await loadCurrentUser(true);
     }
 
-    if (user.tipo === "TUTOR" || user.tipo === "ADMIN") {
-        try {
-            const tutores = await fetchTutores();
-            const match = tutores.find(function (item) {
-                return item.usuario && String(item.usuario.id) === String(user.id);
-            });
-            if (match) {
-                tutorId = String(match.id);
-                localStorage.setItem("tutorId", tutorId);
-            }
-        } catch (e) {
-            // não bloqueia se a chamada falhar
-        }
-    }
+    const estudanteId = user.estudanteId != null ? String(user.estudanteId) : null;
+    const tutorId = user.tutorId != null ? String(user.tutorId) : null;
 
-    return {
-        estudanteId: estudanteId || null,
-        tutorId: tutorId || null
-    };
+    if (estudanteId) localStorage.setItem("estudanteId", estudanteId);
+    else localStorage.removeItem("estudanteId");
+
+    if (tutorId) localStorage.setItem("tutorId", tutorId);
+    else localStorage.removeItem("tutorId");
+
+    return { estudanteId: estudanteId, tutorId: tutorId };
 }
 
 async function requireAuth(expectedTipo) {

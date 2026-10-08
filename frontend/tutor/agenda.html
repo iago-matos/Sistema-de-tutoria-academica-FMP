@@ -243,10 +243,9 @@ document.getElementById('modalSubmit').addEventListener('click', async function(
     btn.textContent = 'Criando...';
 
     try {
-        // Cria a sessão com status PENDENTE sem estudante vinculado ainda.
-        // O estudante será associado quando fizer a solicitação de agendamento.
+        // O backend cria a sessão como DISPONIVEL, sem estudante, sempre na agenda
+        // do tutor logado. O estudante é vinculado quando solicitar a sessão.
         await createAgendamento({
-            status: 'PENDENTE',
             data: data,
             hora: hora,
             observacoes: obs || null,

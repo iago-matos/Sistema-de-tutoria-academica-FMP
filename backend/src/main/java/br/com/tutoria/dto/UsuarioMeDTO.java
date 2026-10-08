@@ -16,4 +16,10 @@ public class UsuarioMeDTO {
     private String nome;
     private String email;
     private UsuarioTipoEnum tipo;
+
+    // IDs dos perfis do usuario logado (null quando ele nao tem o perfil).
+    // Evita que o frontend precise baixar a lista de todos os estudantes e
+    // tutores so para descobrir o proprio ID.
+    private Long estudanteId;
+    private Long tutorId;
 }

@@ -1,5 +1,6 @@
 package br.com.tutoria.service;
 
+import br.com.tutoria.Security.UserSpringSecurity;
 import br.com.tutoria.model.Avaliacao;
 import br.com.tutoria.model.Estudante;
 import br.com.tutoria.model.Tutor;
@@ -10,6 +11,7 @@ import br.com.tutoria.service.exceptions.DataBindingViolationException;
 import br.com.tutoria.service.exceptions.ObjectNotFoundException;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,21 +23,26 @@ public class AvaliacaoService {
     private final AvaliacaoRepository avaliacaoRepository;
     private final TutorRepository tutorRepository;
     private final EstudanteRepository estudanteRepository;
+    private final AutorizacaoService autorizacaoService;
 
     public AvaliacaoService(
             AvaliacaoRepository avaliacaoRepository,
             TutorRepository tutorRepository,
-            EstudanteRepository estudanteRepository) {
+            EstudanteRepository estudanteRepository,
+            AutorizacaoService autorizacaoService) {
         this.avaliacaoRepository = avaliacaoRepository;
         this.tutorRepository = tutorRepository;
         this.estudanteRepository = estudanteRepository;
+        this.autorizacaoService = autorizacaoService;
     }
 
+    // O autor e sempre o estudante logado: o campo "estudante" do corpo e ignorado
     @Transactional
-    public Avaliacao salvar(Avaliacao avaliacao) {
+    public Avaliacao salvar(Avaliacao avaliacao, UserSpringSecurity usuarioLogado) {
+        Estudante autor = autorizacaoService.estudanteLogado(usuarioLogado);
         validarNota(avaliacao.getNota());
         avaliacao.setTutor(resolverTutor(avaliacao.getTutor()));
-        avaliacao.setEstudante(resolverEstudante(avaliacao.getEstudante()));
+        avaliacao.setEstudante(autor);
         return avaliacaoRepository.save(avaliacao);
     }
 
@@ -43,6 +50,20 @@ public class AvaliacaoService {
     public Avaliacao buscarPorId(Long id) {
         return avaliacaoRepository.findById(id)
                 .orElseThrow(() -> new ObjectNotFoundException("Avaliacao nao encontrada: " + id));
+    }
+
+    // Admin, o estudante que avaliou ou o tutor avaliado
+    @Transactional(readOnly = true)
+    public Avaliacao buscarPorId(Long id, UserSpringSecurity usuarioLogado) {
+        Avaliacao avaliacao = buscarPorId(id);
+
+        boolean participante = autorizacaoService.isUsuario(usuarioLogado, avaliacao.getEstudante().getUsuario().getId())
+                || autorizacaoService.isUsuario(usuarioLogado, avaliacao.getTutor().getUsuario().getId());
+
+        if (!autorizacaoService.isAdmin(usuarioLogado) && !participante) {
+            throw new AccessDeniedException("Voce nao tem acesso a esta avaliacao");
+        }
+        return avaliacao;
     }
 
     @Transactional(readOnly = true)

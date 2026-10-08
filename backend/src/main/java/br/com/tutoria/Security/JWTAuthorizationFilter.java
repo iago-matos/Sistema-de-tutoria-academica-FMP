@@ -8,8 +8,11 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import io.jsonwebtoken.JwtException;
 
 public class JWTAuthorizationFilter extends OncePerRequestFilter {
 
@@ -37,33 +40,44 @@ public class JWTAuthorizationFilter extends OncePerRequestFilter {
 
             String token = header.substring(7);
 
-            String email = jwtUtil.getUsernameFromToken(token);
-
-            if (email != null &&
-                SecurityContextHolder.getContext().getAuthentication() == null) {
-
-                UserDetails userDetails =
-                        userDetailsService.loadUserByUsername(email);
-
-                // isEnabled(): tokens de contas que nao estao ATIVAS deixam de valer
-                if (jwtUtil.validateToken(token, userDetails) && userDetails.isEnabled()) {
-
-                    UsernamePasswordAuthenticationToken authToken =
-                            new UsernamePasswordAuthenticationToken(
-                                    userDetails,
-                                    null,
-                                    userDetails.getAuthorities());
-
-                    authToken.setDetails(
-                            new WebAuthenticationDetailsSource()
-                                    .buildDetails(request));
-
-                    SecurityContextHolder.getContext()
-                            .setAuthentication(authToken);
-                }
+            try {
+                autenticar(token, request);
+            } catch (JwtException | IllegalArgumentException | UsernameNotFoundException e) {
+                // Token expirado, adulterado ou de usuario removido: segue sem
+                // autenticar, e a rota protegida responde 401 (ver SecurityConfig)
+                SecurityContextHolder.clearContext();
             }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void autenticar(String token, HttpServletRequest request) {
+
+        String email = jwtUtil.getUsernameFromToken(token);
+
+        if (email != null &&
+            SecurityContextHolder.getContext().getAuthentication() == null) {
+
+            UserDetails userDetails =
+                    userDetailsService.loadUserByUsername(email);
+
+            // isEnabled(): tokens de contas que nao estao ATIVAS deixam de valer
+            if (jwtUtil.validateToken(token, userDetails) && userDetails.isEnabled()) {
+
+                UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities());
+
+                authToken.setDetails(
+                        new WebAuthenticationDetailsSource()
+                                .buildDetails(request));
+
+                SecurityContextHolder.getContext()
+                        .setAuthentication(authToken);
+            }
+        }
     }
 }

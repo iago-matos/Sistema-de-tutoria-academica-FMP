@@ -136,6 +136,26 @@ const API_BASE = "http://localhost:8080";
 3. Um administrador aprova ou recusa o cadastro na tela **Aprovacoes**.
 4. So contas **ATIVAS** conseguem fazer login.
 
+## Permissoes
+
+A identidade de quem faz a requisicao vem sempre do token JWT, nunca de IDs
+enviados no corpo.
+
+| Acao | Estudante | Tutor | Admin |
+|---|---|---|---|
+| Ver sessoes disponiveis e lista de tutores (sem e-mail) | sim | sim | sim |
+| Solicitar sessao | em nome proprio | nao | nao |
+| Criar sessao disponivel | nao | na propria agenda | para qualquer tutor |
+| Confirmar, recusar ou alterar sessao | nao | so as proprias | sim |
+| Excluir agendamento | nao | nao | sim |
+| Registrar avaliacao | em nome proprio | nao | nao |
+| Editar ou excluir avaliacao | nao | nao | sim |
+| Ver os proprios agendamentos e avaliacoes | sim | sim | todos |
+| Listar estudantes, avaliacoes e agendamentos de todos | nao | nao | sim |
+| Coordenadores, aprovacao de cadastros, usuarios | nao | nao | sim |
+
+Cadastrar um coordenador **nao** concede o perfil de administrador.
+
 ## Autenticacao
 
 - `POST /usuario` — cadastro (rota publica). Corpo:

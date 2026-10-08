@@ -1,7 +1,9 @@
 package br.com.tutoria.configs;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -25,7 +27,10 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import br.com.tutoria.Security.JWTAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import br.com.tutoria.Security.JWTAuthorizationFilter;
 import br.com.tutoria.Security.JWTUtil;
 import br.com.tutoria.Security.UserSpringSecurity;
@@ -70,6 +75,14 @@ public class SecurityConfig {
         return provider;
     }
 
+    private static void escreverErro(HttpServletResponse response, int status, String message) throws IOException {
+        response.setStatus(status);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.getWriter().write(
+                new ObjectMapper().writeValueAsString(Map.of("status", status, "message", message)));
+    }
+
     private static void verificarStatusDaConta(UserDetails usuario) {
         if (usuario.isEnabled()) {
             return;
@@ -110,6 +123,14 @@ public class SecurityConfig {
         )
         .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+        )
+        // Sem isto, o Spring responde 403 vazio a quem nao esta logado. Com 401,
+        // o frontend reconhece a sessao expirada e volta para a tela de login.
+        .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((request, response, e) -> escreverErro(response,
+                        HttpServletResponse.SC_UNAUTHORIZED, "Sessao expirada ou ausente: faca login novamente"))
+                .accessDeniedHandler((request, response, e) -> escreverErro(response,
+                        HttpServletResponse.SC_FORBIDDEN, "Voce nao tem permissao para realizar esta acao"))
         )
         .addFilterAt(
                 jwtAuthFilter,

@@ -8,14 +8,12 @@ const PAGE_LOADERS = {
     "tutor-solicitacoes": loadTutorSolicitacoes,
     "tutor-agenda": loadTutorAgenda,
     "tutor-avaliacoes": loadTutorAvaliacoes,
-    "tutor-criar-agendamento": loadTutorCriarAgendamento,
     "admin-dashboard": loadAdminDashboard,
     "admin-aprovacoes": loadAdminAprovacoes,
     "admin-usuarios": loadAdminUsuarios
 };
 
 let cachedTutores = [];
-let cachedAvaliacoes = [];
 
 // Envolve uma promise de fetch e retorna [] em caso de erro,
 // evitando que um fetch falho quebre o Promise.all inteiro
@@ -46,7 +44,7 @@ async function loadEstudanteDashboard() {
     setText("statTutores", tutores.length);
 
     renderEstudanteAgendamentoCards("agendamentosPreview", agendamentos.slice(0, 5));
-    renderTutorCards("tutoresPreview", tutores.slice(0, 3), avaliacoes);
+    renderTutorCards("tutoresPreview", tutores.slice(0, 3));
     renderReviewCards("avaliacoesPreview", avaliacoes, { limit: 2 });
     bindSolicitarTutoriaButtons();
 }
@@ -62,17 +60,16 @@ async function loadEstudanteBuscarTutores() {
 
     showLoader("Carregando tutores...");
     cachedTutores = await fetchTutores();
-    cachedAvaliacoes = await fetchAvaliacoes();
     hideLoader();
 
     updatePageSubtitle(cachedTutores.length + " tutores encontrados");
-    renderTutorCards("tutoresLista", cachedTutores, cachedAvaliacoes);
+    renderTutorCards("tutoresLista", cachedTutores);
     bindSolicitarTutoriaButtons();
 
     bindSearchInput(function (query) {
-        const filtered = filterTutores(cachedTutores, query, cachedAvaliacoes);
+        const filtered = filterTutores(cachedTutores, query);
         updatePageSubtitle(filtered.length + " tutores encontrados");
-        renderTutorCards("tutoresLista", filtered, cachedAvaliacoes);
+        renderTutorCards("tutoresLista", filtered);
         bindSolicitarTutoriaButtons();
     });
 }
@@ -107,7 +104,7 @@ async function loadEstudanteSolicitarAgendamento() {
     hideLoader();
 
     renderSessoesDisponiveis("sessoesLista", sessoes, async function (sessaoId) {
-        await solicitarAgendamento(sessaoId, Number(ids.estudanteId));
+        await solicitarAgendamento(sessaoId);
         showFeedback("feedback", "Solicitação enviada com sucesso!", "success");
     });
 }
@@ -171,12 +168,12 @@ async function loadEstudanteAvaliacoes() {
             return;
         }
 
+        // O autor da avaliacao e definido pelo backend a partir do token
         const payload = {
             nota: Number(document.getElementById("nota").value),
             dataAvaliacao: document.getElementById("dataAvaliacao").value,
             horaAvaliacao: document.getElementById("horaAvaliacao").value,
-            tutor: { id: Number(document.getElementById("tutorSelect").value) },
-            estudante: { id: Number(ids.estudanteId) }
+            tutor: { id: Number(document.getElementById("tutorSelect").value) }
         };
 
         try {
@@ -465,70 +462,6 @@ async function loadAdminUsuarios() {
                 alert(error.message);
             }
         });
-    });
-}
-
-async function loadTutorCriarAgendamento() {
-    const user = await requireAuth("TUTOR");
-    if (!user) return;
-
-    initAppShell({
-        header: { mode: "title", title: "Criar agendamento", subtitle: "Agende uma sessão de tutoria com um estudante." }
-    });
-
-    const ids = await resolveProfileIds(user);
-
-    if (!ids.tutorId) {
-        showError("Perfil de tutor não encontrado. Verifique seu cadastro.");
-        return;
-    }
-
-    const estudantes = await fetchEstudantes();
-
-    fillSelect("estudanteSelect", estudantes, function (estudante) {
-        return formatUsuario(estudante.usuario) + " — " + (estudante.diaDaSemana || "Disponibilidade a combinar");
-    }, function (estudante) {
-        return estudante.id;
-    });
-
-    const form = document.getElementById("agendamentoForm");
-    if (!form) return;
-
-    // Preenche data mínima como hoje
-    const dataInput = document.getElementById("data");
-    if (dataInput) {
-        dataInput.min = new Date().toISOString().split("T")[0];
-    }
-
-    form.addEventListener("submit", async function (event) {
-        event.preventDefault();
-
-        const estudanteId = document.getElementById("estudanteSelect").value;
-        const data = document.getElementById("data").value;
-        const hora = document.getElementById("hora").value;
-        const observacoes = document.getElementById("observacoes").value.trim();
-
-        if (!data || !hora) {
-            showFeedback("feedback", "Informe data e hora da sessão.", "error");
-            return;
-        }
-
-        try {
-            await createAgendamento({
-                status: "PENDENTE",
-                data: data,
-                hora: hora,
-                observacoes: observacoes || null,
-                tutor: { id: Number(ids.tutorId) },
-                estudante: { id: Number(estudanteId) }
-            });
-
-            showFeedback("feedback", "Agendamento criado com sucesso!", "success");
-            form.reset();
-            if (dataInput) dataInput.min = new Date().toISOString().split("T")[0];
-        } catch (error) {
-            showFeedback("feedback", error.message, "error");
-        }
     });
 }
 

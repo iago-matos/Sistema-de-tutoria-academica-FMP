@@ -8,7 +8,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import br.com.tutoria.model.Coordenador;
 import br.com.tutoria.model.Usuario;
-import br.com.tutoria.model.enums.ProfileEnum;
 import br.com.tutoria.repository.CoordenadorRepository;
 import br.com.tutoria.repository.UsuarioRepository;
 import br.com.tutoria.service.exceptions.DataBindingViolationException;
@@ -34,10 +33,8 @@ public class CoordenadorService {
                 .orElseThrow(() -> new ObjectNotFoundException(
                         "Usuario nao encontrado: " + coordenador.getUsuario().getId()));
 
-        // Promove o usuário para ROLE_ADMIN ao torná-lo coordenador
-        usuario.getProfiles().add(ProfileEnum.ADMIN);
-        usuarioRepository.save(usuario);
-
+        // Cadastrar um coordenador NAO concede o perfil ADMIN: os administradores
+        // sao definidos apenas por ADMIN_EMAILS (ver AdminInicialSeeder)
         coordenador.setUsuario(usuario);
         return coordenadorRepository.save(coordenador);
     }
