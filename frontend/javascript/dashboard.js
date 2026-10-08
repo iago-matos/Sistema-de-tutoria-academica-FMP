@@ -10,6 +10,7 @@ const PAGE_LOADERS = {
     "tutor-avaliacoes": loadTutorAvaliacoes,
     "tutor-criar-agendamento": loadTutorCriarAgendamento,
     "admin-dashboard": loadAdminDashboard,
+    "admin-aprovacoes": loadAdminAprovacoes,
     "admin-usuarios": loadAdminUsuarios
 };
 
@@ -305,8 +306,6 @@ async function loadAdminDashboard() {
     const user = await requireAuth("ADMIN");
     if (!user) return;
 
-    initAppShell();
-
     showLoader("Carregando dashboard...");
 
     const results = await Promise.all([
@@ -315,10 +314,13 @@ async function loadAdminDashboard() {
         fetchTutores(),
         fetchAgendamentos(),
         fetchAvaliacoes(),
-        fetchCoordenadores()
+        fetchCoordenadores(),
+        fetchCadastrosPendentes()
     ]);
 
     hideLoader();
+    // O sino do menu mostra quantos cadastros aguardam aprovacao
+    initAppShell({ notifCount: results[6].length });
     setText("statUsuarios", results[0].length);
     setText("statEstudantes", results[1].length);
     setText("statTutores", results[2].length);
@@ -327,6 +329,71 @@ async function loadAdminDashboard() {
     setText("statCoordenadores", results[5].length);
     renderAgendamentosTable("agendamentos", results[3].slice(0, 8));
     renderUsuariosList("usuariosLista", results[0].slice(0, 5));
+}
+
+async function loadAdminAprovacoes() {
+    const user = await requireAuth("ADMIN");
+    if (!user) return;
+
+    showLoader("Carregando cadastros pendentes...");
+    const pendentes = await fetchCadastrosPendentes();
+    hideLoader();
+
+    initAppShell({
+        notifCount: pendentes.length,
+        header: {
+            mode: "title",
+            title: "Aprovações de cadastro",
+            subtitle: "Estudantes e tutores só conseguem entrar depois de aprovados."
+        }
+    });
+
+    const table = document.getElementById("pendentesTable");
+    if (!table) return;
+
+    if (!pendentes.length) {
+        table.innerHTML = "<tbody><tr><td><div class=\"empty-state\">Nenhum cadastro aguardando aprovação.</div></td></tr></tbody>";
+        return;
+    }
+
+    const rows = pendentes.map(function (usuario) {
+        return "<tr>"
+            + "<td>#" + escapeHTML(usuario.id) + "</td>"
+            + "<td>" + escapeHTML(usuario.nome) + "</td>"
+            + "<td>" + escapeHTML(usuario.email) + "</td>"
+            + "<td><span class=\"badge\">" + escapeHTML(usuario.tipo) + "</span></td>"
+            + "<td><div class=\"admin-actions\">"
+            + "<button class=\"btn sm\" type=\"button\" data-action=\"aprovar-cadastro\" data-usuario-id=\"" + escapeHTML(usuario.id) + "\">" + icon("check") + " Aprovar</button>"
+            + "<button class=\"btn outline-danger sm\" type=\"button\" data-action=\"recusar-cadastro\" data-usuario-id=\"" + escapeHTML(usuario.id) + "\">Recusar</button>"
+            + "</div></td></tr>";
+    }).join("");
+
+    table.innerHTML = "<thead><tr><th>ID</th><th>Nome</th><th>Email</th><th>Perfil</th><th>Ações</th></tr></thead><tbody>" + rows + "</tbody>";
+
+    table.querySelectorAll("[data-action='aprovar-cadastro']").forEach(function (button) {
+        button.addEventListener("click", async function () {
+            try {
+                await aprovarCadastro(button.getAttribute("data-usuario-id"));
+                await loadAdminAprovacoes();
+            } catch (error) {
+                showFeedback("feedback", error.message, "error");
+            }
+        });
+    });
+
+    table.querySelectorAll("[data-action='recusar-cadastro']").forEach(function (button) {
+        button.addEventListener("click", async function () {
+            const id = button.getAttribute("data-usuario-id");
+            if (!confirm("Recusar o cadastro #" + id + "? A pessoa não conseguirá entrar no sistema.")) return;
+
+            try {
+                await recusarCadastro(id);
+                await loadAdminAprovacoes();
+            } catch (error) {
+                showFeedback("feedback", error.message, "error");
+            }
+        });
+    });
 }
 
 async function loadAdminUsuarios() {
@@ -345,7 +412,7 @@ async function loadAdminUsuarios() {
     if (!table) return;
 
     if (!usuarios.length) {
-        table.innerHTML = "<tbody><tr><td colspan=\"5\"><div class=\"empty-state\">Nenhum usuário encontrado.</div></td></tr></tbody>";
+        table.innerHTML = "<tbody><tr><td colspan=\"6\"><div class=\"empty-state\">Nenhum usuário encontrado.</div></td></tr></tbody>";
         return;
     }
 
@@ -355,13 +422,14 @@ async function loadAdminUsuarios() {
             + "<td>" + escapeHTML(usuario.nome) + "</td>"
             + "<td>" + escapeHTML(usuario.email) + "</td>"
             + "<td><span class=\"badge\">" + escapeHTML((usuario.profiles || []).join(", ") || "USER") + "</span></td>"
+            + "<td>" + usuarioStatusBadge(usuario.status) + "</td>"
             + "<td><div class=\"admin-actions\">"
             + "<button class=\"btn secondary sm\" type=\"button\" data-action=\"edit-usuario\" data-usuario-id=\"" + escapeHTML(usuario.id) + "\">Editar</button>"
             + "<button class=\"btn outline-danger sm\" type=\"button\" data-action=\"delete-usuario\" data-usuario-id=\"" + escapeHTML(usuario.id) + "\">Excluir</button>"
             + "</div></td></tr>";
     }).join("");
 
-    table.innerHTML = "<thead><tr><th>ID</th><th>Nome</th><th>Email</th><th>Perfis</th><th>Ações</th></tr></thead><tbody>" + rows + "</tbody>";
+    table.innerHTML = "<thead><tr><th>ID</th><th>Nome</th><th>Email</th><th>Perfis</th><th>Status</th><th>Ações</th></tr></thead><tbody>" + rows + "</tbody>";
 
     document.querySelectorAll("[data-action='delete-usuario']").forEach(function (button) {
         button.addEventListener("click", async function () {

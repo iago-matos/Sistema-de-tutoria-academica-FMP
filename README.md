@@ -83,6 +83,10 @@ que em desenvolvimento ficam no arquivo `backend/.env` (ignorado pelo Git).
      openssl rand -base64 48
      ```
 
+   - `ADMIN_EMAILS`: e-mails dos administradores, separados por virgula
+   - `ADMIN_SENHA_INICIAL`: senha dos administradores criados pela primeira vez
+     (minimo de 8 caracteres)
+
 Cada pessoa da equipe tem o seu proprio `.env`. Se uma variavel obrigatoria
 faltar, a aplicacao nao sobe e a mensagem de erro indica qual.
 
@@ -122,9 +126,23 @@ O endereco da API esta fixo em `frontend/javascript/api.js`:
 const API_BASE = "http://localhost:8080";
 ```
 
+## Cadastro e acesso
+
+1. **Administradores:** ao subir, a aplicacao garante que cada e-mail de
+   `ADMIN_EMAILS` exista como administrador ativo. Se o e-mail ainda nao existir,
+   a conta e criada com a senha `ADMIN_SENHA_INICIAL`.
+2. **Estudantes e tutores** se cadastram pela tela de cadastro, escolhendo o tipo
+   de perfil. A conta nasce **PENDENTE**.
+3. Um administrador aprova ou recusa o cadastro na tela **Aprovacoes**.
+4. So contas **ATIVAS** conseguem fazer login.
+
 ## Autenticacao
 
-- `POST /usuario` — cadastro (rota publica)
+- `POST /usuario` — cadastro (rota publica). Corpo:
+  `{ "nome", "email", "senha", "tipo": "ESTUDANTE" | "TUTOR", "diaDaSemana" | "disciplina" }`
 - `POST /login` — recebe `{ "email": "...", "senha": "..." }` e devolve o token
-  JWT no header `Authorization` da resposta
+  JWT no header `Authorization` da resposta. Conta pendente ou recusada recebe
+  **403** com o motivo; credenciais erradas recebem **401**.
 - As demais rotas exigem o header `Authorization: Bearer <token>`
+- Rotas de administracao: `GET /usuario/pendentes`, `PUT /usuario/{id}/aprovar`,
+  `PUT /usuario/{id}/recusar`

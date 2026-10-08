@@ -13,6 +13,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 
 import br.com.tutoria.model.enums.ProfileEnum;
+import br.com.tutoria.model.enums.UsuarioStatusEnum;
 
 
 import lombok.Getter;
@@ -27,13 +28,16 @@ public class UserSpringSecurity implements UserDetails {
     private Long id;
     private String username;
     private String password;
+    private UsuarioStatusEnum status;
     private Collection<? extends GrantedAuthority> authorities;
 
 
-    public UserSpringSecurity(Long id, String username, String password, Set<ProfileEnum> profileEnums) {
+    public UserSpringSecurity(Long id, String username, String password, Set<ProfileEnum> profileEnums,
+            UsuarioStatusEnum status) {
         this.id = id;
         this.username = username;
         this.password = password;
+        this.status = status;
         this.authorities = profileEnums.stream()
             .map(x -> new SimpleGrantedAuthority(x.getDescription()))
             .collect(Collectors.toList());
@@ -58,9 +62,10 @@ public class UserSpringSecurity implements UserDetails {
     }
 
 
+    // So contas aprovadas por um administrador podem autenticar
     @Override
     public boolean isEnabled() {
-        return true;
+        return status == UsuarioStatusEnum.ATIVO;
     }
 
 

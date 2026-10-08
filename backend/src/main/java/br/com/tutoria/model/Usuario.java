@@ -6,6 +6,7 @@ import java.util.Set;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import br.com.tutoria.model.enums.ProfileEnum;
+import br.com.tutoria.model.enums.UsuarioStatusEnum;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
@@ -55,4 +56,8 @@ public class Usuario {
     @ElementCollection(fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)
     private Set<ProfileEnum> profiles = new HashSet<>();
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UsuarioStatusEnum status = UsuarioStatusEnum.PENDENTE;
 }

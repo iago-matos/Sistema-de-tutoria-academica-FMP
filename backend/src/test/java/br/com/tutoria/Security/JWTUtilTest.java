@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import br.com.tutoria.model.enums.ProfileEnum;
+import br.com.tutoria.model.enums.UsuarioStatusEnum;
 
 class JWTUtilTest {
 
@@ -38,7 +39,7 @@ class JWTUtilTest {
         jwtUtil.validarSegredo();
 
         UserSpringSecurity usuario = new UserSpringSecurity(
-                1L, "aluno@teste.com", "hash", Set.of(ProfileEnum.USER));
+                1L, "aluno@teste.com", "hash", Set.of(ProfileEnum.USER), UsuarioStatusEnum.ATIVO);
 
         String token = jwtUtil.generateToken(usuario);
 

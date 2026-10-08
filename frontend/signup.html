@@ -7,6 +7,9 @@
     <link rel="stylesheet" href="css/global.css">
     <script src="javascript/api.js"></script>
     <script src="javascript/auth.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", bindTipoCadastro);
+    </script>
 </head>
 <body class="auth-page">
     <div class="auth-card">
@@ -28,8 +31,32 @@
             </div>
             <div class="field">
                 <label for="senha">Senha</label>
-                <input type="password" id="senha" required placeholder="••••••••">
+                <input type="password" id="senha" required minlength="8" maxlength="72" placeholder="Mínimo de 8 caracteres">
             </div>
+            <div class="field">
+                <label for="tipo">Eu sou</label>
+                <select id="tipo" required>
+                    <option value="ESTUDANTE">Estudante</option>
+                    <option value="TUTOR">Tutor</option>
+                </select>
+            </div>
+            <div class="field" id="campoDiaDaSemana">
+                <label for="diaDaSemana">Dia da semana com disponibilidade</label>
+                <select id="diaDaSemana" required>
+                    <option value="">Selecione</option>
+                    <option>Segunda-feira</option>
+                    <option>Terça-feira</option>
+                    <option>Quarta-feira</option>
+                    <option>Quinta-feira</option>
+                    <option>Sexta-feira</option>
+                    <option>Sábado</option>
+                </select>
+            </div>
+            <div class="field" id="campoDisciplina" style="display:none;">
+                <label for="disciplina">Disciplina em que vai ser tutor</label>
+                <input type="text" id="disciplina" maxlength="120" placeholder="Ex.: Banco de Dados">
+            </div>
+            <p class="muted" style="font-size:0.85rem;">Seu acesso será liberado depois que um administrador aprovar o cadastro.</p>
             <button class="btn" type="submit">Cadastrar</button>
         </form>
         <div id="feedback" style="display:none;margin-top:12px;"></div>

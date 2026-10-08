@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -69,18 +70,22 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
     }
 
     @Override
-protected void unsuccessfulAuthentication(
-        HttpServletRequest request,
-        HttpServletResponse response,
-        AuthenticationException failed)
-        throws IOException, ServletException {
+    protected void unsuccessfulAuthentication(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            AuthenticationException failed)
+            throws IOException, ServletException {
 
-    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-    response.setContentType("application/json");
+        // Senha correta, mas cadastro pendente ou recusado: 403 com o motivo
+        boolean contaInativa = failed instanceof DisabledException;
+        int status = contaInativa ? HttpServletResponse.SC_FORBIDDEN : HttpServletResponse.SC_UNAUTHORIZED;
+        String message = contaInativa ? failed.getMessage() : "Credenciais invalidas";
 
-    response.getWriter().write(
-            "{\"status\":401,\"message\":\"Credenciais invalidas\"}"
-    );
-}
+        response.setStatus(status);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.getWriter().write(
+                new ObjectMapper().writeValueAsString(Map.of("status", status, "message", message)));
+    }
 }
 

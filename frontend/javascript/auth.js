@@ -144,13 +144,34 @@ async function handleLoginSubmit(event) {
     }
 }
 
+// Mostra o campo especifico de cada tipo de perfil no formulario de cadastro
+function bindTipoCadastro() {
+    const tipo = document.getElementById("tipo");
+    if (!tipo) return;
+
+    function atualizarCampos() {
+        const estudante = tipo.value === "ESTUDANTE";
+        document.getElementById("campoDiaDaSemana").style.display = estudante ? "" : "none";
+        document.getElementById("campoDisciplina").style.display = estudante ? "none" : "";
+        document.getElementById("diaDaSemana").required = estudante;
+        document.getElementById("disciplina").required = !estudante;
+    }
+
+    tipo.addEventListener("change", atualizarCampos);
+    atualizarCampos();
+}
+
 async function handleSignupSubmit(event) {
     event.preventDefault();
 
+    const tipo = document.getElementById("tipo").value;
     const payload = {
         nome: document.getElementById("nome").value.trim(),
         email: document.getElementById("email").value.trim(),
-        senha: document.getElementById("senha").value
+        senha: document.getElementById("senha").value,
+        tipo: tipo,
+        diaDaSemana: tipo === "ESTUDANTE" ? document.getElementById("diaDaSemana").value : null,
+        disciplina: tipo === "TUTOR" ? document.getElementById("disciplina").value.trim() : null
     };
     const feedback = document.getElementById("feedback");
 
@@ -158,17 +179,19 @@ async function handleSignupSubmit(event) {
         await signupRequest(payload);
 
         if (feedback) {
-            feedback.textContent = "Cadastro realizado! Redirecionando...";
+            feedback.textContent = "Cadastro enviado! Você poderá entrar assim que um administrador aprovar seu acesso.";
             feedback.className = "loading-state";
+            feedback.style.display = "block";
         }
 
         setTimeout(function () {
             window.location.href = resolveRelativePath("login.html");
-        }, 800);
+        }, 3500);
     } catch (error) {
         if (feedback) {
             feedback.textContent = error.message || "Erro ao cadastrar";
             feedback.className = "error-state";
+            feedback.style.display = "block";
         } else {
             alert(error.message || "Erro ao cadastrar");
         }

@@ -8,11 +8,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -24,6 +28,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import br.com.tutoria.Security.JWTAuthenticationFilter;
 import br.com.tutoria.Security.JWTAuthorizationFilter;
 import br.com.tutoria.Security.JWTUtil;
+import br.com.tutoria.Security.UserSpringSecurity;
+import br.com.tutoria.model.enums.UsuarioStatusEnum;
 
 @Configuration
 @EnableWebSecurity
@@ -49,11 +55,37 @@ public class SecurityConfig {
     }
 
     @Bean
+    public DaoAuthenticationProvider authenticationProvider(
+            UserDetailsService userDetailsService,
+            PasswordEncoder passwordEncoder) {
+
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder);
+
+        // Por padrao o Spring confere o status da conta ANTES da senha. Invertemos a ordem:
+        // quem erra a senha recebe so "Credenciais invalidas" e nao descobre se o
+        // e-mail esta cadastrado nem se o cadastro esta pendente ou recusado.
+        provider.setPreAuthenticationChecks(usuario -> { });
+        provider.setPostAuthenticationChecks(SecurityConfig::verificarStatusDaConta);
+        return provider;
+    }
+
+    private static void verificarStatusDaConta(UserDetails usuario) {
+        if (usuario.isEnabled()) {
+            return;
+        }
+        UsuarioStatusEnum status = ((UserSpringSecurity) usuario).getStatus();
+        throw new DisabledException(status == UsuarioStatusEnum.RECUSADO
+                ? "Seu cadastro foi recusado. Procure a coordenação."
+                : "Seu cadastro está aguardando a aprovação de um administrador.");
+    }
+
+    @Bean
         public SecurityFilterChain filterChain(
                 HttpSecurity http,
                 AuthenticationManager authenticationManager,
                 JWTUtil jwtUtil,
-                org.springframework.security.core.userdetails.UserDetailsService userDetailsService)
+                UserDetailsService userDetailsService)
                 throws Exception {
 
     JWTAuthenticationFilter jwtAuthFilter =

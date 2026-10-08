@@ -16,7 +16,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.com.tutoria.Security.UserSpringSecurity;
+import br.com.tutoria.dto.CadastroRequestDTO;
 import br.com.tutoria.dto.UsuarioMeDTO;
+import br.com.tutoria.dto.UsuarioResumoDTO;
 import br.com.tutoria.model.Usuario;
 import br.com.tutoria.service.UsuarioService;
 import jakarta.validation.Valid;
@@ -31,17 +33,36 @@ public class UsuarioController {
         this.usuarioService = usuarioService;
     }
 
-    // Público — cadastro de novos usuários (liberado no SecurityConfig)
+    // Público — cadastro de novos usuários (liberado no SecurityConfig).
+    // A conta nasce PENDENTE até um administrador aprovar.
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Usuario salvar(@Valid @RequestBody Usuario usuario) {
-        return usuarioService.salvar(usuario);
+    public UsuarioResumoDTO cadastrar(@Valid @RequestBody CadastroRequestDTO cadastro) {
+        return usuarioService.cadastrar(cadastro);
     }
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public List<Usuario> listarTodos() {
         return usuarioService.listarTodos();
+    }
+
+    @GetMapping("/pendentes")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<UsuarioResumoDTO> listarPendentes() {
+        return usuarioService.listarPendentes();
+    }
+
+    @PutMapping("/{id}/aprovar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public UsuarioResumoDTO aprovar(@PathVariable Long id) {
+        return usuarioService.aprovar(id);
+    }
+
+    @PutMapping("/{id}/recusar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public UsuarioResumoDTO recusar(@PathVariable Long id) {
+        return usuarioService.recusar(id);
     }
 
     @GetMapping("/me")

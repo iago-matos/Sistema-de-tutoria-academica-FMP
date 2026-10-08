@@ -1,7 +1,12 @@
 package br.com.tutoria.service;
+import br.com.tutoria.dto.CadastroRequestDTO;
 import br.com.tutoria.dto.UsuarioMeDTO;
+import br.com.tutoria.dto.UsuarioResumoDTO;
+import br.com.tutoria.model.Estudante;
+import br.com.tutoria.model.Tutor;
 import br.com.tutoria.model.Usuario;
 import br.com.tutoria.model.enums.ProfileEnum;
+import br.com.tutoria.model.enums.UsuarioStatusEnum;
 import br.com.tutoria.model.enums.UsuarioTipoEnum;
 import br.com.tutoria.repository.CoordenadorRepository;
 import br.com.tutoria.repository.EstudanteRepository;
@@ -15,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class UsuarioService {
@@ -39,22 +45,86 @@ public class UsuarioService {
         this.coordenadorRepository = coordenadorRepository;
     }
 
-    @Transactional
-    public Usuario salvar(Usuario usuario) {
+    // Evita contas duplicadas como "Ana@x.com" e "ana@x.com"
+    public static String normalizarEmail(String email) {
+        return email == null ? null : email.trim().toLowerCase(Locale.ROOT);
+    }
 
-        usuarioRepository.findByEmail(usuario.getEmail()).ifPresent(u -> {
-            throw new IllegalArgumentException(
-                    "Email ja cadastrado: " + usuario.getEmail());
+    // Cadastro publico: cria o usuario e o perfil (estudante ou tutor) juntos.
+    // A conta nasce PENDENTE e so faz login depois que um administrador aprovar.
+    @Transactional
+    public UsuarioResumoDTO cadastrar(CadastroRequestDTO dados) {
+
+        if (dados.tipo() == UsuarioTipoEnum.ADMIN) {
+            throw new IllegalArgumentException("O cadastro só pode ser feito como ESTUDANTE ou TUTOR");
+        }
+
+        // Valida tudo antes de gravar qualquer coisa
+        boolean estudante = dados.tipo() == UsuarioTipoEnum.ESTUDANTE;
+        String campoDoPerfil = estudante
+                ? exigirTexto(dados.diaDaSemana(), "Informe o dia da semana de disponibilidade do estudante")
+                : exigirTexto(dados.disciplina(), "Informe a disciplina do tutor");
+
+        String email = normalizarEmail(dados.email());
+
+        usuarioRepository.findByEmail(email).ifPresent(u -> {
+            throw new IllegalArgumentException("Email ja cadastrado: " + email);
         });
 
-        // Criptografa senha
-        usuario.setSenha(
-                passwordEncoder.encode(usuario.getSenha()));
-
-        // Adiciona perfil padrão
+        Usuario usuario = new Usuario();
+        usuario.setNome(dados.nome().trim());
+        usuario.setEmail(email);
+        usuario.setSenha(passwordEncoder.encode(dados.senha()));
         usuario.getProfiles().add(ProfileEnum.USER);
+        usuario.setStatus(UsuarioStatusEnum.PENDENTE);
+        usuarioRepository.save(usuario);
 
-        return usuarioRepository.save(usuario);
+        if (estudante) {
+            Estudante perfil = new Estudante();
+            perfil.setUsuario(usuario);
+            perfil.setDiaDaSemana(campoDoPerfil);
+            estudanteRepository.save(perfil);
+        } else {
+            Tutor perfil = new Tutor();
+            perfil.setUsuario(usuario);
+            perfil.setDisciplina(campoDoPerfil);
+            tutorRepository.save(perfil);
+        }
+
+        return paraResumo(usuario, dados.tipo());
+    }
+
+    @Transactional(readOnly = true)
+    public List<UsuarioResumoDTO> listarPendentes() {
+        return usuarioRepository.findByStatusOrderByIdAsc(UsuarioStatusEnum.PENDENTE).stream()
+                .map(usuario -> paraResumo(usuario, resolverTipo(usuario)))
+                .toList();
+    }
+
+    @Transactional
+    public UsuarioResumoDTO aprovar(Long id) {
+        Usuario usuario = buscarPorId(id);
+
+        if (usuario.getStatus() == UsuarioStatusEnum.ATIVO) {
+            throw new IllegalArgumentException("Este usuario ja esta ativo");
+        }
+
+        usuario.setStatus(UsuarioStatusEnum.ATIVO);
+        usuarioRepository.save(usuario);
+        return paraResumo(usuario, resolverTipo(usuario));
+    }
+
+    @Transactional
+    public UsuarioResumoDTO recusar(Long id) {
+        Usuario usuario = buscarPorId(id);
+
+        if (usuario.getStatus() != UsuarioStatusEnum.PENDENTE) {
+            throw new IllegalArgumentException("Apenas cadastros pendentes podem ser recusados");
+        }
+
+        usuario.setStatus(UsuarioStatusEnum.RECUSADO);
+        usuarioRepository.save(usuario);
+        return paraResumo(usuario, resolverTipo(usuario));
     }
 
     @Transactional(readOnly = true)
@@ -114,12 +184,14 @@ public class UsuarioService {
                         new ObjectNotFoundException(
                                 "Usuario nao encontrado: " + id));
 
-        if (dados.getEmail() != null
-                && !dados.getEmail().equals(existente.getEmail())) {
+        String novoEmail = normalizarEmail(dados.getEmail());
 
-            usuarioRepository.findByEmail(dados.getEmail()).ifPresent(u -> {
+        if (novoEmail != null
+                && !novoEmail.equals(existente.getEmail())) {
+
+            usuarioRepository.findByEmail(novoEmail).ifPresent(u -> {
                 throw new IllegalArgumentException(
-                        "Email ja cadastrado: " + dados.getEmail());
+                        "Email ja cadastrado: " + novoEmail);
             });
         }
 
@@ -127,8 +199,8 @@ public class UsuarioService {
             existente.setNome(dados.getNome());
         }
 
-        if (dados.getEmail() != null) {
-            existente.setEmail(dados.getEmail());
+        if (novoEmail != null) {
+            existente.setEmail(novoEmail);
         }
 
         if (dados.getSenha() != null) {
@@ -159,5 +231,21 @@ public class UsuarioService {
             throw new DataBindingViolationException(
                     "Nao e possivel excluir pois ha entidades relacionadas");
         }
+    }
+
+    private static String exigirTexto(String valor, String mensagem) {
+        if (valor == null || valor.isBlank()) {
+            throw new IllegalArgumentException(mensagem);
+        }
+        return valor.trim();
+    }
+
+    private static UsuarioResumoDTO paraResumo(Usuario usuario, UsuarioTipoEnum tipo) {
+        return new UsuarioResumoDTO(
+                usuario.getId(),
+                usuario.getNome(),
+                usuario.getEmail(),
+                usuario.getStatus(),
+                tipo);
     }
 }

@@ -121,6 +121,13 @@ function statusBadge(status) {
     return "<span class=\"badge" + modifier + "\">" + escapeHTML(raw) + "</span>";
 }
 
+// Status da conta do usuario (diferente do status do agendamento)
+function usuarioStatusBadge(status) {
+    const s = String(status || "").toUpperCase();
+    const modifier = s === "ATIVO" ? " success" : s === "PENDENTE" ? " warning" : s === "RECUSADO" ? " danger" : "";
+    return "<span class=\"badge" + modifier + "\">" + escapeHTML(s || "--") + "</span>";
+}
+
 function renderStars(rating, reviewCount) {
     const fullStars = Math.round(Number(rating) || 0);
     let starsHtml = "";

@@ -35,6 +35,20 @@ function handleUnauthorized(response) {
     return false;
 }
 
+// Le a mensagem de erro do backend. Em erros de validacao (422), junta as
+// mensagens de cada campo, que sao mais uteis que a mensagem geral.
+async function readErrorMessage(response) {
+    try {
+        const body = await response.json();
+        if (Array.isArray(body.errors) && body.errors.length) {
+            return body.errors.map(function (e) { return e.message; }).join(" ");
+        }
+        return body.message || body.error || "";
+    } catch (_) {
+        return "";
+    }
+}
+
 async function requestJSON(route, options) {
     const config = Object.assign({
         method: "GET",
@@ -53,11 +67,7 @@ async function requestJSON(route, options) {
     }
 
     if (!response.ok) {
-        let detail = "";
-        try {
-            const body = await response.json();
-            detail = body.message || body.error || "";
-        } catch (_) {}
+        const detail = await readErrorMessage(response);
         const message = detail
             ? detail
             : "Falha ao carregar " + route + " (" + response.status + ")";
@@ -102,6 +112,11 @@ async function loginRequest(email, senha) {
         body: JSON.stringify({ email: email, senha: senha })
     });
 
+    // 403: senha correta, mas cadastro pendente ou recusado. O backend explica o motivo.
+    if (response.status === 403) {
+        throw new Error(await readErrorMessage(response) || "Acesso nao liberado");
+    }
+
     if (!response.ok) {
         throw new Error("Email ou senha invalidos");
     }
@@ -124,10 +139,22 @@ async function signupRequest(payload) {
     });
 
     if (!response.ok) {
-        throw new Error("Erro ao cadastrar");
+        throw new Error(await readErrorMessage(response) || "Erro ao cadastrar");
     }
 
     return response.json();
+}
+
+async function fetchCadastrosPendentes() {
+    return requestJSON("/usuario/pendentes");
+}
+
+async function aprovarCadastro(usuarioId) {
+    return putJSON("/usuario/" + usuarioId + "/aprovar", {});
+}
+
+async function recusarCadastro(usuarioId) {
+    return putJSON("/usuario/" + usuarioId + "/recusar", {});
 }
 
 async function fetchCurrentUser() {

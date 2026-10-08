@@ -2,6 +2,8 @@ package br.com.tutoria.exceptions;
 import br.com.tutoria.service.exceptions.DataBindingViolationException;
 import br.com.tutoria.service.exceptions.ObjectNotFoundException;
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -46,6 +48,16 @@ public ResponseEntity<Object> handleAuthenticationException(
             HttpStatus.UNAUTHORIZED
     );
 }
+
+    // Sem este tratador, um @PreAuthorize negado caia no handler generico e virava 500
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Object> handleAccessDeniedException(AccessDeniedException ex) {
+        String message = ex instanceof AuthorizationDeniedException
+                ? "Voce nao tem permissao para realizar esta acao"
+                : ex.getMessage();
+        log.warn("Acesso negado: {}", message);
+        return buildErrorResponse(ex, message, HttpStatus.FORBIDDEN);
+    }
 
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(

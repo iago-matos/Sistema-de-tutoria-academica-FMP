@@ -28,6 +28,7 @@ const NAV_MENUS = {
     ],
     admin: [
         { id: "inicio", label: "Início", href: "dashboard.html", icon: "home" },
+        { id: "aprovacoes", label: "Aprovações", href: "aprovacoes.html", icon: "check" },
         { id: "usuarios", label: "Usuários", href: "usuarios.html", icon: "settings" }
     ]
 };

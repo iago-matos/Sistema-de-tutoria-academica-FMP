@@ -45,7 +45,8 @@ public class JWTAuthorizationFilter extends OncePerRequestFilter {
                 UserDetails userDetails =
                         userDetailsService.loadUserByUsername(email);
 
-                if (jwtUtil.validateToken(token, userDetails)) {
+                // isEnabled(): tokens de contas que nao estao ATIVAS deixam de valer
+                if (jwtUtil.validateToken(token, userDetails) && userDetails.isEnabled()) {
 
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(
