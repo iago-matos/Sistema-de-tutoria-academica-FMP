@@ -6,7 +6,8 @@
             "name": "TutoriaApplication (Spring Boot)",
             "request": "launch",
             "mainClass": "br.com.tutoria.TutoriaApplication",
-            "projectName": "tutoria-api"
+            "projectName": "tutoria-api",
+            "cwd": "${workspaceFolder}/backend"
         },
         {
             "type": "chrome",

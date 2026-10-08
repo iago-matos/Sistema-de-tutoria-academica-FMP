@@ -7,9 +7,13 @@ tutores, com frontend estatico em HTML/CSS/JavaScript.
 
 ```
 TutoriaFMP-main/
+├── .github/workflows/    CI: build e testes a cada push e Pull Request
 ├── .vscode/              Configuracao do VS Code (JDK, launch, task Maven)
+├── docker-compose.yml    PostgreSQL para desenvolvimento local
 ├── backend/              Projeto Maven — API REST
 │   ├── pom.xml
+│   ├── .env.example      Modelo das variaveis de ambiente
+│   ├── src/test/         Testes automatizados (banco H2 em memoria)
 │   └── src/main/
 │       ├── java/br/com/tutoria/
 │       │   ├── TutoriaApplication.java    Classe main
@@ -32,27 +36,55 @@ TutoriaFMP-main/
 
 - Java 21, Spring Boot 3.5.14
 - Spring Web, Spring Data JPA (Hibernate), Spring Security, Spring Validation
-- MySQL 8 (`mysql-connector-j`)
+- PostgreSQL 16
 - JJWT 0.12.6 (autenticacao via JSON Web Token)
 - Lombok
+- Testes: JUnit 5, Spring Boot Test, Spring Security Test, H2
+- CI: GitHub Actions
 - Frontend: HTML/CSS/JavaScript puro, sem framework e sem build
 
 ## Pre-requisitos
 
 - JDK 21 ou superior
 - Maven
-- MySQL rodando em `localhost:3306`
+- PostgreSQL 16, de uma destas formas:
+  - **Instalador para Windows:** https://www.postgresql.org/download/windows/
+  - **Docker:** `docker compose up -d` na raiz do projeto
 
 ## Banco de dados
 
-O schema precisa existir antes de subir a aplicacao. As tabelas sao criadas
-automaticamente pelo Hibernate (`spring.jpa.hibernate.ddl-auto=update`).
+O banco `tutoria_db` precisa existir antes de subir a aplicacao. As tabelas sao
+criadas automaticamente pelo Hibernate (`spring.jpa.hibernate.ddl-auto=update`).
+
+- Com Docker, o `docker-compose.yml` ja cria o banco.
+- Com o instalador, crie pelo pgAdmin ou pelo `psql`:
 
 ```sql
 CREATE DATABASE tutoria_db;
 ```
 
-Credenciais e URL ficam em `backend/src/main/resources/application.properties`.
+## Configuracao
+
+Nenhuma senha ou segredo fica no codigo. Tudo vem de variaveis de ambiente,
+que em desenvolvimento ficam no arquivo `backend/.env` (ignorado pelo Git).
+
+1. Copie o modelo:
+
+   ```bash
+   cd backend
+   cp .env.example .env
+   ```
+
+2. Edite o `backend/.env`:
+   - `DB_PASSWORD`: a senha do seu PostgreSQL
+   - `JWT_SECRET`: um segredo aleatorio de no minimo 32 caracteres. No Git Bash:
+
+     ```bash
+     openssl rand -base64 48
+     ```
+
+Cada pessoa da equipe tem o seu proprio `.env`. Se uma variavel obrigatoria
+faltar, a aplicacao nao sobe e a mensagem de erro indica qual.
 
 ## Como executar
 
@@ -62,6 +94,16 @@ Credenciais e URL ficam em `backend/src/main/resources/application.properties`.
 cd backend
 mvn spring-boot:run
 ```
+
+### Testes
+
+```bash
+cd backend
+mvn verify
+```
+
+Os testes usam um banco H2 em memoria e nao precisam de PostgreSQL nem de `.env`.
+O GitHub Actions roda os mesmos testes a cada push na `main` e em todo Pull Request.
 
 A API sobe em `http://localhost:8080`.
 

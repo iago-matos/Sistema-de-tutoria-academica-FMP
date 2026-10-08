@@ -1,7 +1,9 @@
 package br.com.tutoria.configs;
 
+import java.util.Arrays;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -65,7 +67,8 @@ public class SecurityConfig {
                     userDetailsService);
 
     http
-        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+        // Usa o bean corsConfigurationSource definido abaixo
+        .cors(cors -> {})
         .csrf(csrf -> csrf.disable())
         .authorizeHttpRequests(authz -> authz
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -89,9 +92,16 @@ public class SecurityConfig {
         }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    public CorsConfigurationSource corsConfigurationSource(
+            @Value("${app.cors.allowed-origins}") String allowedOrigins) {
+
+        List<String> origens = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origem -> !origem.isEmpty())
+                .toList();
+
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("http://127.0.0.1:*", "http://localhost:*"));
+        config.setAllowedOriginPatterns(origens);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));

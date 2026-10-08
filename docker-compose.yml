@@ -1,0 +1,19 @@
+# PostgreSQL para desenvolvimento local.
+# Subir:  docker compose up -d
+# Parar:  docker compose down
+# A senha "postgres" e apenas para a maquina local; combina com o backend/.env.example.
+services:
+  postgres:
+    image: postgres:16
+    container_name: tutoria-postgres
+    environment:
+      POSTGRES_DB: tutoria_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - tutoria-pgdata:/var/lib/postgresql/data
+
+volumes:
+  tutoria-pgdata:

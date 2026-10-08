@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 
 @Component
 public class JWTUtil {
@@ -21,6 +22,15 @@ public class JWTUtil {
 
     @Value("${jwt.expiration}")
     private Long expiration;
+
+    // Falha ao subir a aplicacao, em vez de falhar so no primeiro login
+    @PostConstruct
+    void validarSegredo() {
+        if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException(
+                    "JWT_SECRET ausente ou curto demais: use no minimo 32 caracteres (veja backend/.env.example)");
+        }
+    }
 
     public String generateToken(UserDetails userDetails) {
 
