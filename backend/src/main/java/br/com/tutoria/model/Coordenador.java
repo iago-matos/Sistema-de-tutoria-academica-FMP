@@ -31,7 +31,8 @@ public class Coordenador {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(columnDefinition = "TEXT")
+    // Texto livre de ate 4000 caracteres (nvarchar(4000) no SQL Server)
+    @Column(length = 4000)
     private String relatorio;
 
     @OneToOne(fetch = FetchType.LAZY)

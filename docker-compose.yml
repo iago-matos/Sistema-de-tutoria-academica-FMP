@@ -1,19 +1,22 @@
-# PostgreSQL para desenvolvimento local.
+# SQL Server para desenvolvimento local (opcional: so para quem usa Docker).
 # Subir:  docker compose up -d
 # Parar:  docker compose down
-# A senha "postgres" e apenas para a maquina local; combina com o backend/.env.example.
+# Precisa de cerca de 2 GB de memoria livre.
+# A senha abaixo e apenas para a maquina local; use a mesma no DB_PASSWORD do backend/.env.
+# Depois de subir, crie o banco uma vez:
+#   docker exec -it tutoria-sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "Local@Senha123" -C -Q "CREATE DATABASE tutoria_db"
 services:
-  postgres:
-    image: postgres:16
-    container_name: tutoria-postgres
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: tutoria-sqlserver
     environment:
-      POSTGRES_DB: tutoria_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Local@Senha123"
+      MSSQL_PID: Developer
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:1433:1433"
     volumes:
-      - tutoria-pgdata:/var/lib/postgresql/data
+      - tutoria-sqldata:/var/opt/mssql
 
 volumes:
-  tutoria-pgdata:
+  tutoria-sqldata:

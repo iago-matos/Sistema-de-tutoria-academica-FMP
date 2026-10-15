@@ -9,7 +9,7 @@ tutores, com frontend estatico em HTML/CSS/JavaScript.
 TutoriaFMP-main/
 ├── .github/workflows/    CI: build e testes a cada push e Pull Request
 ├── .vscode/              Configuracao do VS Code (JDK, launch, task Maven)
-├── docker-compose.yml    PostgreSQL para desenvolvimento local
+├── docker-compose.yml    SQL Server para desenvolvimento local (opcional)
 ├── backend/              Projeto Maven — API REST
 │   ├── pom.xml
 │   ├── .env.example      Modelo das variaveis de ambiente
@@ -36,7 +36,7 @@ TutoriaFMP-main/
 
 - Java 21, Spring Boot 3.5.14
 - Spring Web, Spring Data JPA (Hibernate), Spring Security, Spring Validation
-- PostgreSQL 16
+- SQL Server / Azure SQL Database (camada serverless, oferta gratuita)
 - JJWT 0.12.6 (autenticacao via JSON Web Token)
 - Lombok
 - Testes: JUnit 5, Spring Boot Test, Spring Security Test, H2
@@ -47,21 +47,47 @@ TutoriaFMP-main/
 
 - JDK 21 ou superior
 - Maven
-- PostgreSQL 16, de uma destas formas:
-  - **Instalador para Windows:** https://www.postgresql.org/download/windows/
-  - **Docker:** `docker compose up -d` na raiz do projeto
+- Um banco SQL Server acessivel (veja as opcoes abaixo)
 
 ## Banco de dados
 
-O banco `tutoria_db` precisa existir antes de subir a aplicacao. As tabelas sao
-criadas automaticamente pelo Hibernate (`spring.jpa.hibernate.ddl-auto=update`).
+O banco precisa existir antes de subir a aplicacao. As tabelas sao criadas
+automaticamente pelo Hibernate (`spring.jpa.hibernate.ddl-auto=update`).
 
-- Com Docker, o `docker-compose.yml` ja cria o banco.
-- Com o instalador, crie pelo pgAdmin ou pelo `psql`:
+### Opcao 1 (recomendada): banco de desenvolvimento na Azure
+
+Nao exige instalar nada. A oferta gratuita do Azure SQL permite mais de um banco
+gratuito por assinatura (ate 10, segundo a documentacao da Microsoft).
+
+1. No servidor do projeto na Azure, crie um segundo banco, `tutoria_db_dev`,
+   tambem com a oferta gratuita
+2. Em *Servidor → Seguranca → Rede*, clique em **Adicionar o endereco IPv4 do
+   cliente** para liberar o seu computador (repita se o seu IP mudar)
+3. No `backend/.env`, use a `DB_URL` do Azure SQL do `.env.example`, trocando
+   `tutoria_db` por `tutoria_db_dev`
+
+O banco pausa quando ninguem usa. A primeira conexao depois de uma pausa leva
+cerca de 1 minuto: a aplicacao espera, nao e erro.
+
+### Opcao 2: SQL Server instalado no computador
+
+1. Instale o **SQL Server 2022 Express** ou **Developer** (gratuitos) com
+   instalacao personalizada
+2. Na configuracao do mecanismo de banco de dados, escolha **Modo misto** e
+   defina a senha do usuario `sa`
+3. No **SQL Server Configuration Manager**, em *Configuracao de Rede*, habilite o
+   protocolo **TCP/IP**. Nas propriedades dele, em *IPAll*, apague o valor de
+   *Portas Dinamicas TCP*, coloque **1433** em *Porta TCP* e reinicie o servico
+4. Crie o banco (pelo SQL Server Management Studio ou pelo `sqlcmd`):
 
 ```sql
 CREATE DATABASE tutoria_db;
 ```
+
+### Opcao 3: Docker
+
+`docker compose up -d` na raiz do projeto e, depois, o comando de criacao do
+banco que esta comentado no `docker-compose.yml`.
 
 ## Configuracao
 
@@ -76,7 +102,7 @@ que em desenvolvimento ficam no arquivo `backend/.env` (ignorado pelo Git).
    ```
 
 2. Edite o `backend/.env`:
-   - `DB_PASSWORD`: a senha do seu PostgreSQL
+   - `DB_URL`, `DB_USERNAME` e `DB_PASSWORD`: os dados do banco escolhido acima
    - `JWT_SECRET`: um segredo aleatorio de no minimo 32 caracteres. No Git Bash:
 
      ```bash
@@ -106,7 +132,8 @@ cd backend
 mvn verify
 ```
 
-Os testes usam um banco H2 em memoria e nao precisam de PostgreSQL nem de `.env`.
+Os testes usam um banco H2 em memoria (modo SQL Server) e nao precisam de banco
+instalado nem de `.env`.
 O GitHub Actions roda os mesmos testes a cada push na `main` e em todo Pull Request.
 
 A API sobe em `http://localhost:8080`.

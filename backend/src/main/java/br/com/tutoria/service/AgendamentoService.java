@@ -61,6 +61,7 @@ public class AgendamentoService {
                 ? resolverTutor(agendamento.getTutor())
                 : autorizacaoService.tutorLogado(usuarioLogado);
 
+        validarObservacoes(agendamento.getObservacoes());
         agendamento.setTutor(tutor);
         agendamento.setEstudante(null);
         agendamento.setStatus("DISPONIVEL");
@@ -171,6 +172,7 @@ public class AgendamentoService {
             existente.setHora(dados.getHora());
         }
         if (dados.getObservacoes() != null) {
+            validarObservacoes(dados.getObservacoes());
             existente.setObservacoes(dados.getObservacoes());
         }
         agendamentoRepository.save(existente);
@@ -190,6 +192,13 @@ public class AgendamentoService {
         } catch (DataIntegrityViolationException ex) {
             throw new DataBindingViolationException(
                     "Nao e possivel excluir pois ha entidades relacionadas");
+        }
+    }
+
+    // Mesmo limite da coluna no banco (ver Agendamento.observacoes)
+    private void validarObservacoes(String observacoes) {
+        if (observacoes != null && observacoes.length() > 4000) {
+            throw new IllegalArgumentException("Observações devem ter no máximo 4000 caracteres");
         }
     }
 

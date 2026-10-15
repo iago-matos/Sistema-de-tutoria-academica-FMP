@@ -48,7 +48,8 @@ public class Agendamento {
     @Column(nullable = false)
     private LocalTime hora;
 
-    @Column(columnDefinition = "TEXT")
+    // Texto livre de ate 4000 caracteres (nvarchar(4000) no SQL Server)
+    @Column(length = 4000)
     private String observacoes;
 
     @ManyToOne(fetch = FetchType.LAZY)
