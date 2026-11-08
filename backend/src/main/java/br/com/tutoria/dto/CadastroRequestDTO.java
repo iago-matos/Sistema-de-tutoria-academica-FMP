@@ -26,9 +26,7 @@ public record CadastroRequestDTO(
         @NotNull(message = "Tipo é obrigatório: ESTUDANTE ou TUTOR")
         UsuarioTipoEnum tipo,
 
-        // Obrigatorio quando tipo = ESTUDANTE
-        String diaDaSemana,
-
-        // Obrigatorio quando tipo = TUTOR
-        String disciplina) {
+        // Obrigatorio quando tipo = TUTOR: uma disciplina da lista (GET /disciplina).
+        // O estudante so informa o tipo.
+        Long disciplinaId) {
 }

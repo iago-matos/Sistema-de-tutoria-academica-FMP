@@ -1,4 +1,5 @@
 package br.com.tutoria.exceptions;
+import br.com.tutoria.service.exceptions.AcessoRecusadoException;
 import br.com.tutoria.service.exceptions.DataBindingViolationException;
 import br.com.tutoria.service.exceptions.ObjectNotFoundException;
 import jakarta.validation.ConstraintViolationException;
@@ -149,6 +150,12 @@ public ResponseEntity<Object> handleAuthenticationException(
     public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException ex) {
         log.warn("Argumento invalido: {}", ex.getMessage());
         return buildErrorResponse(ex, ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(AcessoRecusadoException.class)
+    public ResponseEntity<Object> handleAcessoRecusadoException(AcessoRecusadoException ex) {
+        log.warn("Acesso recusado ({}): {}", ex.getStatus().value(), ex.getMessage());
+        return buildErrorResponse(ex, ex.getMessage(), ex.getStatus());
     }
 
     @ExceptionHandler(ObjectNotFoundException.class)

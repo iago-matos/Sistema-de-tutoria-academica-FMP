@@ -17,23 +17,34 @@
     <main class="main-panel">
         <header class="page-header" id="pageHeader"></header>
         <div id="loading" class="loading-state" style="display:none;">Carregando agenda...</div>
+        <div id="feedback" style="display:none;margin-bottom:16px;"></div>
 
         <!-- CALENDAR TOOLBAR -->
         <div class="page-header-row" style="margin-bottom:16px;">
             <div class="cal-legend">
                 <div class="cal-legend-item">
-                    <span class="cal-legend-dot" style="background:#cbd5e1;border:1.5px dashed #94a3b8;"></span>
-                    <span>Horário vazio — clique para agendar</span>
+                    <span class="cal-legend-dot" style="background:var(--success-bg);border:1.5px dashed #86efac;"></span>
+                    <span>Livre</span>
+                </div>
+                <div class="cal-legend-item">
+                    <span class="cal-legend-dot" style="background:var(--warning);"></span>
+                    <span>Aguardando você</span>
                 </div>
                 <div class="cal-legend-item">
                     <span class="cal-legend-dot" style="background:var(--blue);"></span>
-                    <span>Sessão agendada — clique para ver detalhes</span>
+                    <span>Confirmada</span>
+                </div>
+                <div class="cal-legend-item">
+                    <span class="cal-legend-dot" style="background:#0d9488;"></span>
+                    <span>Realizada</span>
                 </div>
             </div>
             <div class="cal-toolbar">
-                <div class="btn-group">
-                    <button class="btn active" id="btnSemana" type="button">Semana</button>
-                    <button class="btn" id="btnMes" type="button" style="opacity:0.5;cursor:not-allowed;" disabled>Mês</button>
+                <div class="cal-week-nav">
+                    <button class="btn secondary sm" id="btnSemanaAnterior" type="button" aria-label="Semana anterior">‹</button>
+                    <button class="btn secondary sm" id="btnHoje" type="button">Hoje</button>
+                    <button class="btn secondary sm" id="btnProximaSemana" type="button" aria-label="Próxima semana">›</button>
+                    <span class="cal-week-label" id="calWeekLabel"></span>
                 </div>
             </div>
         </div>
@@ -49,16 +60,16 @@
             </div>
         </div>
 
-        <!-- MODAL Nova Sessão -->
+        <!-- MODAL Novo horário -->
         <div class="modal-overlay" id="modalOverlay">
             <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
                 <div class="modal-header">
                     <div>
-                        <div class="modal-title" id="modalTitle">Nova Sessão</div>
+                        <div class="modal-title" id="modalTitle">Novo horário de tutoria</div>
                         <div class="modal-subtitle" id="modalSubtitle"></div>
                     </div>
-                    <button class="modal-close" id="modalClose" aria-label="Fechar">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    <button class="modal-close" id="modalClose" type="button" aria-label="Fechar">
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                 </div>
                 <form class="modal-body" id="modalForm">
@@ -68,56 +79,98 @@
                             <input type="date" id="modalData" required>
                         </div>
                         <div class="field">
-                            <label for="modalHora">Horário</label>
-                            <input type="time" id="modalHora" required>
+                            <label for="modalHora">Horário de início</label>
+                            <input type="time" id="modalHora" required step="900">
                         </div>
                     </div>
                     <div class="field">
                         <label>Duração</label>
-                        <div class="duration-group" id="durationGroup">
-                            <button type="button" class="duration-pill" data-value="30">30 min</button>
-                            <button type="button" class="duration-pill active" data-value="60">1 hora</button>
-                            <button type="button" class="duration-pill" data-value="90">1h30</button>
-                            <button type="button" class="duration-pill" data-value="120">2 horas</button>
+                        <!-- Por enquanto toda sessão dura 1h; escolher a duração será uma feature futura -->
+                        <div class="duration-fixed">
+                            <span class="duration-pill active" aria-current="true">1 hora</span>
+                            <span id="modalHoraFim"></span>
                         </div>
                     </div>
                     <div class="field">
-                        <label for="modalObs">Observações <span style="color:var(--subtle);font-weight:400;">(opcional)</span></label>
-                        <textarea id="modalObs" maxlength="4000" placeholder="Ex: Trazer exercícios da semana passada..."></textarea>
+                        <label for="modalLink">Link da videoconferência <span style="color:var(--subtle);font-weight:400;">(opcional)</span></label>
+                        <input type="url" id="modalLink" maxlength="500" inputmode="url" autocomplete="off"
+                               placeholder="Cole aqui o link do Meet, Zoom, Teams...">
+                        <span class="field-hint">Com link, o estudante escolhe entre presencial (na instituição) ou online. Sem link, a tutoria é só presencial.</span>
                     </div>
+                    <div class="field">
+                        <label for="modalObs">Observações <span style="color:var(--subtle);font-weight:400;">(opcional)</span></label>
+                        <textarea id="modalObs" maxlength="4000" placeholder="Ex: Revisão para a P1, trazer a lista de exercícios..."></textarea>
+                    </div>
+                    <div id="modalFeedback" style="display:none;"></div>
                 </form>
                 <div class="modal-footer">
                     <button class="btn secondary" id="modalCancel" type="button">Cancelar</button>
                     <button class="btn" id="modalSubmit" type="button">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                        Criar sessão
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        Abrir horário
                     </button>
                 </div>
             </div>
         </div>
 
-        <div id="feedback" style="display:none;margin-top:16px;"></div>
+        <!-- MODAL Detalhes da sessão -->
+        <div class="modal-overlay" id="detalheOverlay">
+            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="detalheTitle">
+                <div class="modal-header">
+                    <div>
+                        <div class="modal-title" id="detalheTitle">Sessão de tutoria</div>
+                        <div class="modal-subtitle" id="detalheSubtitle"></div>
+                    </div>
+                    <button class="modal-close" id="detalheClose" type="button" aria-label="Fechar">
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <dl class="detail-list" id="detalheLista"></dl>
+                    <div id="detalheFeedback" style="display:none;margin-top:12px;"></div>
+                </div>
+                <div class="modal-footer" id="detalheAcoes"></div>
+            </div>
+        </div>
     </main>
 </div>
 
-<button class="help-btn" type="button" title="Ajuda">?</button>
-
 <script>
-// ── Calendar logic ───────────────────────────────────────────
-const HOURS = ['8h','9h','10h','11h','12h','13h','14h','15h','16h','17h'];
-const HOUR_VALUES = [8,9,10,11,12,13,14,15,16,17];
-const SESSION_COLORS = ['blue','purple','green','teal'];
+// ── Agenda semanal do tutor ──────────────────────────────────
+// Das 7h às 22h (cursos noturnos). Toda sessão dura 1h.
+const HOUR_VALUES = Array.from({ length: 16 }, function (_, i) { return i + 7; });
+
+// O backend aceita sessões das 00h às 23h: se houver alguma fora da faixa
+// padrão nesta semana, a linha daquela hora aparece também (senão ela sumiria)
+function horasDaSemana(sessions, weekStart) {
+    const dias = [];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(weekStart);
+        d.setDate(d.getDate() + i);
+        dias.push(formatDate(d));
+    }
+    const horas = new Set(HOUR_VALUES);
+    sessions.forEach(function (s) {
+        if (s.hora && dias.includes(s.data)) horas.add(Number(s.hora.substring(0, 2)));
+    });
+    return Array.from(horas).sort(function (a, b) { return a - b; });
+}
 const DAYS_PT = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const STATUS_LABEL = {
+    DISPONIVEL: 'Livre',
+    PENDENTE: 'Aguardando confirmação',
+    CONFIRMADO: 'Confirmada',
+    REALIZADO: 'Realizada',
+    CANCELADO: 'Cancelada'
+};
 
 let currentWeekStart = getWeekStart(new Date());
 let agendamentos = [];
-let tutorId = null;
 
 function getWeekStart(date) {
     const d = new Date(date);
-    const day = d.getDay();
-    d.setDate(d.getDate() - day);
-    d.setHours(0,0,0,0);
+    d.setDate(d.getDate() - d.getDay());
+    d.setHours(0, 0, 0, 0);
     return d;
 }
 
@@ -130,8 +183,21 @@ function formatDate(date) {
 
 function formatDisplayDate(dateStr) {
     if (!dateStr) return '';
-    const [y,m,d] = dateStr.split('-');
+    const [y, m, d] = dateStr.split('-');
     return d + '/' + m + '/' + y;
+}
+
+function hhmm(time) {
+    return time ? time.substring(0, 5) : '--';
+}
+
+function addOneHour(time) {
+    const [h, m] = time.split(':').map(Number);
+    return String(h + 1).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+}
+
+function isPast(dateStr, timeStr) {
+    return new Date(dateStr + 'T' + timeStr) <= new Date();
 }
 
 function buildHeader(weekStart) {
@@ -148,128 +214,291 @@ function buildHeader(weekStart) {
         </div>`;
     }
     header.innerHTML = html;
+
+    const end = new Date(weekStart);
+    end.setDate(end.getDate() + 6);
+    const fmt = { day: '2-digit', month: 'short' };
+    document.getElementById('calWeekLabel').textContent =
+        weekStart.toLocaleDateString('pt-BR', fmt) + ' – ' + end.toLocaleDateString('pt-BR', fmt);
+}
+
+function sessionLabel(s) {
+    if (s.status === 'DISPONIVEL') return 'Livre · ' + hhmm(s.hora);
+    const name = getEstudanteName(s).split(' ').slice(0, 2).join(' ');
+    return name + ' · ' + hhmm(s.hora) + (s.modalidade === 'ONLINE' ? ' · Online' : '');
+}
+
+// Mesma regra do backend: só endereços https://
+function linkValido(link) {
+    return !link || /^https:\/\/[^\s/]+/i.test(link);
 }
 
 function buildBody(weekStart, sessions) {
     const body = document.getElementById('calBody');
+    // Canceladas não ocupam a agenda: o horário fica livre para um novo
+    const visiveis = sessions.filter(function (s) { return s.status !== 'CANCELADO'; });
     let html = '';
-    HOUR_VALUES.forEach(function(hour, idx) {
+    horasDaSemana(visiveis, weekStart).forEach(function (hour) {
+        const hourStr = String(hour).padStart(2, '0');
         html += '<div class="cal-row">';
-        html += `<div class="cal-time">${HOURS[idx]}</div>`;
+        html += `<div class="cal-time">${hour}h</div>`;
         for (let col = 0; col < 7; col++) {
             const d = new Date(weekStart);
             d.setDate(d.getDate() + col);
             const dateStr = formatDate(d);
-            const timeStr = String(hour).padStart(2,'0') + ':00';
-            // find sessions in this slot
-            const slot = sessions.filter(function(s) {
-                return s.data === dateStr && s.hora && s.hora.startsWith(String(hour).padStart(2,'0'));
+            const timeStr = hourStr + ':00';
+            const slot = visiveis.filter(function (s) {
+                return s.data === dateStr && s.hora && s.hora.startsWith(hourStr);
             });
-            let inner = `<div class="cal-cell-add">+ Sessão</div>`;
-            slot.forEach(function(s, si) {
-                const name = s.estudante && s.estudante.usuario ? s.estudante.usuario.nome : 'Estudante';
-                const firstName = name.split(' ').slice(0,2).join(' ');
-                const disc = s.tutor ? s.tutor.disciplina || '' : '';
-                const color = SESSION_COLORS[si % SESSION_COLORS.length];
-                inner += `<div class="cal-session ${color}" data-session-id="${s.id}" title="${name} — ${disc}">${firstName}${disc ? ' — ' + disc : ''}</div>`;
+            const past = isPast(dateStr, timeStr);
+            let inner = past ? '' : '<div class="cal-cell-add">+ Horário</div>';
+            slot.forEach(function (s) {
+                const css = String(s.status || '').toLowerCase();
+                const label = sessionLabel(s);
+                inner += `<div class="cal-session ${escapeHTML(css)}" data-session-id="${escapeHTML(s.id)}" title="${escapeHTML(label)}">${escapeHTML(label)}</div>`;
             });
-            html += `<div class="cal-cell" data-date="${dateStr}" data-hour="${timeStr}">${inner}</div>`;
+            html += `<div class="cal-cell${past ? ' past' : ''}" data-date="${dateStr}" data-hour="${timeStr}">${inner}</div>`;
         }
         html += '</div>';
     });
     body.innerHTML = html;
-    // bind cell clicks
-    document.querySelectorAll('.cal-cell').forEach(function(cell) {
-        cell.addEventListener('click', function(e) {
+
+    document.querySelectorAll('.cal-cell:not(.past)').forEach(function (cell) {
+        cell.addEventListener('click', function (e) {
             if (e.target.closest('.cal-session')) return;
             openModal(cell.dataset.date, cell.dataset.hour);
         });
     });
-    document.querySelectorAll('.cal-session').forEach(function(el) {
-        el.addEventListener('click', function(e) {
+    document.querySelectorAll('.cal-session').forEach(function (el) {
+        el.addEventListener('click', function (e) {
             e.stopPropagation();
-            // future: show session detail
+            openDetalhe(Number(el.dataset.sessionId));
         });
     });
 }
 
-// ── Modal ────────────────────────────────────────────────────
+function renderCalendar() {
+    buildHeader(currentWeekStart);
+    buildBody(currentWeekStart, agendamentos);
+}
+
+// Chamado pelo dashboard.js depois do login
+function initAgenda(lista) {
+    agendamentos = lista || [];
+    renderCalendar();
+}
+
+// Depois de salvar, um erro aqui apareceria num modal ja fechado:
+// por isso a mensagem vai para o topo da página
+async function refreshCalendar() {
+    try {
+        agendamentos = await fetchMinhaAgenda();
+        document.getElementById('feedback').style.display = 'none';
+    } catch (err) {
+        showFeedback('feedback', 'Não foi possível atualizar a agenda: ' + err.message, 'error');
+    }
+    renderCalendar();
+}
+
+function moverSemana(dias) {
+    currentWeekStart.setDate(currentWeekStart.getDate() + dias);
+    renderCalendar();
+}
+
+document.getElementById('btnSemanaAnterior').addEventListener('click', function () { moverSemana(-7); });
+document.getElementById('btnProximaSemana').addEventListener('click', function () { moverSemana(7); });
+document.getElementById('btnHoje').addEventListener('click', function () {
+    currentWeekStart = getWeekStart(new Date());
+    renderCalendar();
+});
+
+// ── Modal: novo horário ──────────────────────────────────────
+function atualizarHoraFim() {
+    const hora = document.getElementById('modalHora').value;
+    document.getElementById('modalHoraFim').textContent = hora ? 'das ' + hora + ' às ' + addOneHour(hora) : '';
+}
+
 function openModal(date, hour) {
     document.getElementById('modalData').value = date || formatDate(new Date());
-    document.getElementById('modalHora').value = hour || '09:00';
-    const sub = (date ? formatDisplayDate(date) : '') + (hour ? ' às ' + hour.substring(0,5) : '');
-    document.getElementById('modalSubtitle').textContent = sub;
+    document.getElementById('modalData').min = formatDate(new Date());
+    document.getElementById('modalHora').value = hour ? hour.substring(0, 5) : '09:00';
+    document.getElementById('modalSubtitle').textContent =
+        (date ? formatDisplayDate(date) : '') + (hour ? ' às ' + hour.substring(0, 5) : '');
+    atualizarHoraFim();
     document.getElementById('modalOverlay').classList.add('open');
-    document.getElementById('modalData').focus();
+    document.getElementById('modalHora').focus();
 }
 
 function closeModal() {
     document.getElementById('modalOverlay').classList.remove('open');
     document.getElementById('modalForm').reset();
-    document.querySelectorAll('.duration-pill').forEach(function(p) { p.classList.remove('active'); });
-    document.querySelector('.duration-pill[data-value="60"]').classList.add('active');
-    document.getElementById('feedback').style.display = 'none';
+    document.getElementById('modalFeedback').style.display = 'none';
 }
 
+document.getElementById('modalHora').addEventListener('input', atualizarHoraFim);
 document.getElementById('modalClose').addEventListener('click', closeModal);
 document.getElementById('modalCancel').addEventListener('click', closeModal);
-document.getElementById('modalOverlay').addEventListener('click', function(e) {
+document.getElementById('modalOverlay').addEventListener('click', function (e) {
     if (e.target === this) closeModal();
 });
 
-document.getElementById('durationGroup').addEventListener('click', function(e) {
-    const pill = e.target.closest('.duration-pill');
-    if (!pill) return;
-    document.querySelectorAll('.duration-pill').forEach(function(p) { p.classList.remove('active'); });
-    pill.classList.add('active');
-});
-
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeModal();
-});
-
-document.getElementById('modalSubmit').addEventListener('click', async function() {
+document.getElementById('modalSubmit').addEventListener('click', async function () {
     const data = document.getElementById('modalData').value;
     const hora = document.getElementById('modalHora').value;
     const obs = document.getElementById('modalObs').value.trim();
+    const link = document.getElementById('modalLink').value.trim();
 
     if (!data || !hora) {
-        showFeedback('feedback', 'Informe data e horário da sessão.', 'error');
+        showFeedback('modalFeedback', 'Informe a data e o horário de início.', 'error');
+        return;
+    }
+    if (!linkValido(link)) {
+        showFeedback('modalFeedback', 'O link precisa começar com https:// (ex.: https://meet.google.com/abc-defg-hij).', 'error');
         return;
     }
 
     const btn = document.getElementById('modalSubmit');
     btn.disabled = true;
-    btn.textContent = 'Criando...';
+    btn.textContent = 'Salvando...';
 
     try {
-        // O backend cria a sessão como DISPONIVEL, sem estudante, sempre na agenda
-        // do tutor logado. O estudante é vinculado quando solicitar a sessão.
-        await createAgendamento({
-            data: data,
-            hora: hora,
-            observacoes: obs || null,
-            tutor: { id: Number(tutorId) }
-        });
+        // O horário nasce DISPONIVEL, com 1h de duração, sempre na agenda do
+        // tutor logado. O estudante é vinculado quando solicitar a tutoria.
+        await createAgendamento({ data: data, hora: hora, observacoes: obs || null, linkReuniao: link || null });
         closeModal();
+        // Mostra a semana do horário criado (a data pode ter sido trocada no modal)
+        currentWeekStart = getWeekStart(new Date(data + 'T00:00'));
         await refreshCalendar();
     } catch (err) {
-        showFeedback('feedback', err.message, 'error');
+        showFeedback('modalFeedback', err.message, 'error');
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Criar sessão';
+        btn.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Abrir horário';
     }
 });
 
-async function refreshCalendar() {
-    if (!tutorId) return;
-    agendamentos = await fetchTutorAgendamentos(tutorId);
-    buildBody(currentWeekStart, agendamentos);
+// ── Modal: detalhes da sessão ────────────────────────────────
+function openDetalhe(id) {
+    const s = agendamentos.find(function (a) { return a.id === id; });
+    if (!s) return;
+
+    const dia = new Date(s.data + 'T00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+    document.getElementById('detalheSubtitle').textContent = dia;
+
+    const estudante = s.estudante ? getEstudanteName(s) : 'Ainda nenhum estudante solicitou';
+    document.getElementById('detalheLista').innerHTML =
+        '<dt>Horário</dt><dd>' + escapeHTML(hhmm(s.hora) + ' – ' + hhmm(s.horaFim)) + ' (1 hora)</dd>'
+        + '<dt>Situação</dt><dd>' + statusBadge(s.status) + ' ' + escapeHTML(STATUS_LABEL[s.status] || '') + '</dd>'
+        + '<dt>Estudante</dt><dd>' + escapeHTML(estudante) + '</dd>'
+        + '<dt>Disciplina</dt><dd>' + escapeHTML(s.disciplina ? s.disciplina.nome
+            : (s.estudante ? '--' : 'O estudante escolhe entre as suas disciplinas')) + '</dd>'
+        + '<dt>Modalidade</dt><dd>' + escapeHTML(s.modalidade
+            ? MODALIDADE_LABEL[s.modalidade]
+            : (s.onlineDisponivel ? 'O estudante escolhe: presencial ou online' : 'Somente presencial')) + '</dd>'
+        + '<dt>Videoconferência</dt><dd id="detalheLink">Carregando...</dd>'
+        + '<dt>Observações</dt><dd>' + escapeHTML(s.observacoes || 'Nenhuma') + '</dd>';
+    carregarLinkDaSessao(s);
+
+    const comecou = isPast(s.data, s.hora);
+    let acoes = '<button class="btn secondary" type="button" data-acao="fechar">Fechar</button>';
+    if (s.status === 'DISPONIVEL' || s.status === 'PENDENTE' || s.status === 'CONFIRMADO') {
+        acoes = '<button class="btn outline-danger" type="button" data-acao="cancelar">'
+            + (s.status === 'PENDENTE' ? 'Recusar' : 'Cancelar sessão') + '</button>' + acoes;
+    }
+    if (s.status === 'PENDENTE' && !comecou) {
+        acoes += '<button class="btn" type="button" data-acao="confirmar">' + icon('check') + ' Confirmar</button>';
+    }
+    if (s.status === 'CONFIRMADO' && comecou) {
+        acoes += '<button class="btn" type="button" data-acao="concluir">' + icon('check') + ' Marcar como realizada</button>';
+    }
+    const footer = document.getElementById('detalheAcoes');
+    footer.innerHTML = acoes;
+    footer.dataset.sessionId = s.id;
+    document.getElementById('detalheFeedback').style.display = 'none';
+    document.getElementById('detalheOverlay').classList.add('open');
 }
 
-// ── Init ─────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', async function() {
-    // handled by dashboard.js PAGE_LOADERS for auth + appShell
+// O link não vem na lista da agenda: é buscado à parte, só para quem pode vê-lo
+async function carregarLinkDaSessao(s) {
+    const alvo = document.getElementById('detalheLink');
+    const editavel = s.status === 'DISPONIVEL' || s.status === 'PENDENTE' || s.status === 'CONFIRMADO';
+    let link = null;
+    try {
+        const resposta = await fetchLinkReuniao(s.id);
+        link = resposta && resposta.linkReuniao;
+    } catch (err) {
+        alvo.textContent = 'Não foi possível carregar o link.';
+        return;
+    }
+    if (String(document.getElementById('detalheAcoes').dataset.sessionId) !== String(s.id)) return;
+
+    const seguro = linkSeguro(link);
+    const abrir = seguro
+        ? ' <a href="' + escapeHTML(seguro) + '" target="_blank" rel="noopener noreferrer">Abrir</a>'
+        : '';
+    if (!editavel) {
+        alvo.innerHTML = seguro ? escapeHTML(seguro) + abrir : 'Nenhum';
+        return;
+    }
+    alvo.innerHTML = '<div class="link-row">'
+        + '<input type="url" id="detalheLinkInput" maxlength="500" placeholder="https://meet.google.com/..." value="' + escapeHTML(link || '') + '">'
+        + '<button class="btn secondary sm" type="button" id="detalheLinkSalvar">Salvar</button>'
+        + '</div>' + (abrir ? '<div style="margin-top:4px;">' + abrir + '</div>' : '');
+
+    document.getElementById('detalheLinkSalvar').addEventListener('click', async function () {
+        const novo = document.getElementById('detalheLinkInput').value.trim();
+        if (!linkValido(novo)) {
+            showFeedback('detalheFeedback', 'O link precisa começar com https://', 'error');
+            return;
+        }
+        this.disabled = true;
+        try {
+            // Texto vazio remove o link (o backend recusa se o estudante escolheu online)
+            await updateAgendamento(s.id, { linkReuniao: novo });
+            await refreshCalendar();
+            showFeedback('detalheFeedback', novo ? 'Link salvo.' : 'Link removido: a sessão fica só presencial.', 'success');
+            const atual = agendamentos.find(function (a) { return a.id === s.id; });
+            if (atual) carregarLinkDaSessao(atual);
+        } catch (err) {
+            showFeedback('detalheFeedback', err.message, 'error');
+        } finally {
+            this.disabled = false;
+        }
+    });
+}
+
+function closeDetalhe() {
+    document.getElementById('detalheOverlay').classList.remove('open');
+}
+
+document.getElementById('detalheClose').addEventListener('click', closeDetalhe);
+document.getElementById('detalheOverlay').addEventListener('click', function (e) {
+    if (e.target === this) closeDetalhe();
+});
+
+document.getElementById('detalheAcoes').addEventListener('click', async function (e) {
+    const btn = e.target.closest('[data-acao]');
+    if (!btn) return;
+    const acao = btn.dataset.acao;
+    const id = this.dataset.sessionId;
+    if (acao === 'fechar') { closeDetalhe(); return; }
+    if (acao === 'cancelar' && !confirm('Tem certeza? O estudante verá a sessão como cancelada.')) return;
+
+    btn.disabled = true;
+    try {
+        if (acao === 'cancelar') await cancelarAgendamento(id);
+        if (acao === 'confirmar') await updateAgendamento(id, { status: 'CONFIRMADO' });
+        if (acao === 'concluir') await updateAgendamento(id, { status: 'REALIZADO' });
+        closeDetalhe();
+        await refreshCalendar();
+    } catch (err) {
+        btn.disabled = false;
+        showFeedback('detalheFeedback', err.message, 'error');
+    }
+});
+
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { closeModal(); closeDetalhe(); }
 });
 </script>
 </body>

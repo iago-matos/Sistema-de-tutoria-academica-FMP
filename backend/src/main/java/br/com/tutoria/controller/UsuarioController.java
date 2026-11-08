@@ -5,7 +5,6 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,6 +21,7 @@ import br.com.tutoria.dto.CadastroRequestDTO;
 import br.com.tutoria.dto.UsuarioMeDTO;
 import br.com.tutoria.dto.UsuarioResumoDTO;
 import br.com.tutoria.model.Usuario;
+import br.com.tutoria.service.InativacaoDeContaService;
 import br.com.tutoria.service.UsuarioService;
 import jakarta.validation.Valid;
 
@@ -30,9 +30,11 @@ import jakarta.validation.Valid;
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
+    private final InativacaoDeContaService inativacaoDeContaService;
 
-    public UsuarioController(UsuarioService usuarioService) {
+    public UsuarioController(UsuarioService usuarioService, InativacaoDeContaService inativacaoDeContaService) {
         this.usuarioService = usuarioService;
+        this.inativacaoDeContaService = inativacaoDeContaService;
     }
 
     // Público — cadastro de novos usuários (liberado no SecurityConfig).
@@ -45,7 +47,7 @@ public class UsuarioController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public List<Usuario> listarTodos() {
+    public List<UsuarioResumoDTO> listarTodos() {
         return usuarioService.listarTodos();
     }
 
@@ -98,10 +100,26 @@ public class UsuarioController {
         usuarioService.alterarSenha(user.getId(), dados);
     }
 
-    @DeleteMapping("/{id}")
+    // Nao existe exclusao de conta: a coordenacao inativa, e o historico
+    // (sessoes, avaliacoes e mensagens do chat) fica guardado
+    @PutMapping("/{id}/inativar")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasRole('ADMIN')")
-    public void deletar(@PathVariable Long id) {
-        usuarioService.deletar(id);
+    public void inativar(@PathVariable Long id, @AuthenticationPrincipal UserSpringSecurity user) {
+        inativacaoDeContaService.inativarConta(id, user);
+    }
+
+    @PutMapping("/{id}/reativar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public UsuarioResumoDTO reativar(@PathVariable Long id) {
+        return usuarioService.reativar(id);
+    }
+
+    // Apagar dados pessoais (LGPD): so a coordenacao, apos pedido feito na secretaria.
+    // Nao ha opcao para o proprio usuario fazer isso pelo sistema.
+    @PutMapping("/{id}/anonimizar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public UsuarioResumoDTO anonimizar(@PathVariable Long id) {
+        return usuarioService.anonimizar(id);
     }
 }

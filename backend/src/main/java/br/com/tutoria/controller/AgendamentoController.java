@@ -12,10 +12,15 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.com.tutoria.Security.UserSpringSecurity;
+import br.com.tutoria.dto.AtualizarAgendamentoDTO;
+import br.com.tutoria.dto.LinkReuniaoDTO;
+import br.com.tutoria.dto.NovoHorarioDTO;
+import br.com.tutoria.dto.SolicitarAgendamentoDTO;
 import br.com.tutoria.model.Agendamento;
 import br.com.tutoria.service.AgendamentoService;
 import br.com.tutoria.service.AutorizacaoService;
@@ -32,32 +37,60 @@ public class AgendamentoController {
         this.autorizacaoService = autorizacaoService;
     }
 
-    // Tutor cria sessão disponível na própria agenda (status e estudante são
-    // definidos pelo service, por isso o corpo não passa por @Valid)
+    // Tutor abre um horário de 1h na própria agenda
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Agendamento salvar(
-            @RequestBody Agendamento agendamento,
+    public Agendamento disponibilizar(
+            @RequestBody NovoHorarioDTO dados,
             @AuthenticationPrincipal UserSpringSecurity usuarioLogado) {
-        return agendamentoService.salvar(agendamento, usuarioLogado);
+        return agendamentoService.disponibilizar(dados, usuarioLogado);
     }
 
-    // Estudante solicita uma sessão disponível. Não há corpo: o estudante é
-    // identificado pelo token (um "estudanteId" enviado é ignorado).
+    // Estudante solicita um horário disponível, escolhendo PRESENCIAL ou ONLINE
+    // e a disciplina ({"modalidade": "ONLINE", "disciplinaId": 3}). O estudante é
+    // identificado pelo token (um "estudanteId" enviado é ignorado). Sem corpo, a
+    // tutoria é presencial e, se o tutor atende uma disciplina só, é dela.
     @PutMapping("/{id}/solicitar")
     public Agendamento solicitar(
             @PathVariable Long id,
+            @RequestBody(required = false) SolicitarAgendamentoDTO dados,
             @AuthenticationPrincipal UserSpringSecurity usuarioLogado) {
-        return agendamentoService.solicitar(id, usuarioLogado);
+        return agendamentoService.solicitar(id,
+                dados != null ? dados.modalidade() : null,
+                dados != null ? dados.disciplinaId() : null,
+                usuarioLogado);
     }
 
-    // Lista todas as sessões disponíveis (para o estudante ver)
+    // Link da videoconferência: tutor e admin sempre; o estudante, só depois
+    // que o tutor confirmar a tutoria online
+    @GetMapping("/{id}/link-reuniao")
+    public LinkReuniaoDTO linkReuniao(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserSpringSecurity usuarioLogado) {
+        return agendamentoService.linkReuniao(id, usuarioLogado);
+    }
+
+    // Tutor/admin: sessão CANCELADA. Estudante: desiste e o horário volta a ficar livre.
+    @PutMapping("/{id}/cancelar")
+    public Agendamento cancelar(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserSpringSecurity usuarioLogado) {
+        return agendamentoService.cancelar(id, usuarioLogado);
+    }
+
+    // Agenda de quem está logado (tutor, estudante ou, para admin, todas)
+    @GetMapping("/minha-agenda")
+    public List<Agendamento> minhaAgenda(@AuthenticationPrincipal UserSpringSecurity usuarioLogado) {
+        return agendamentoService.visualizarAgenda(usuarioLogado);
+    }
+
+    // Horários disponíveis (futuros); ?disciplina=Cálculo filtra pela disciplina
     @GetMapping("/disponiveis")
-    public List<Agendamento> listarDisponiveis() {
-        return agendamentoService.listarDisponiveis();
+    public List<Agendamento> listarDisponiveis(@RequestParam(required = false) String disciplina) {
+        return agendamentoService.visualizarHorariosDisponiveis(disciplina);
     }
 
-    // Lista sessões disponíveis de um tutor específico
+    // Horários disponíveis de um tutor específico
     @GetMapping("/disponiveis/tutor/{tutorId}")
     public List<Agendamento> listarDisponiveisPorTutor(@PathVariable Long tutorId) {
         return agendamentoService.listarDisponiveisPorTutor(tutorId);
@@ -92,13 +125,13 @@ public class AgendamentoController {
         return agendamentoService.listarAgendamentosPorEstudante(id);
     }
 
-    // Tutor confirma/recusa ou atualiza a própria sessão
+    // Tutor confirma, recusa (CANCELADO), conclui, remarca ou edita observações
     @PutMapping("/{id}")
     public Agendamento atualizar(
             @PathVariable Long id,
-            @RequestBody Agendamento agendamento,
+            @RequestBody AtualizarAgendamentoDTO dados,
             @AuthenticationPrincipal UserSpringSecurity usuarioLogado) {
-        return agendamentoService.atualizar(id, agendamento, usuarioLogado);
+        return agendamentoService.atualizar(id, dados, usuarioLogado);
     }
 
     @DeleteMapping("/{id}")

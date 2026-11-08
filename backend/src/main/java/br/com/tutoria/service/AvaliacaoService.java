@@ -1,9 +1,11 @@
 package br.com.tutoria.service;
 
 import br.com.tutoria.Security.UserSpringSecurity;
+import br.com.tutoria.model.Agendamento;
 import br.com.tutoria.model.Avaliacao;
 import br.com.tutoria.model.Estudante;
-import br.com.tutoria.model.Tutor;
+import br.com.tutoria.model.enums.AgendamentoStatusEnum;
+import br.com.tutoria.repository.AgendamentoRepository;
 import br.com.tutoria.repository.AvaliacaoRepository;
 import br.com.tutoria.repository.EstudanteRepository;
 import br.com.tutoria.repository.TutorRepository;
@@ -15,6 +17,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -23,27 +27,67 @@ public class AvaliacaoService {
     private final AvaliacaoRepository avaliacaoRepository;
     private final TutorRepository tutorRepository;
     private final EstudanteRepository estudanteRepository;
+    private final AgendamentoRepository agendamentoRepository;
     private final AutorizacaoService autorizacaoService;
+    private final Clock clock;
 
     public AvaliacaoService(
             AvaliacaoRepository avaliacaoRepository,
             TutorRepository tutorRepository,
             EstudanteRepository estudanteRepository,
-            AutorizacaoService autorizacaoService) {
+            AgendamentoRepository agendamentoRepository,
+            AutorizacaoService autorizacaoService,
+            Clock clock) {
         this.avaliacaoRepository = avaliacaoRepository;
         this.tutorRepository = tutorRepository;
         this.estudanteRepository = estudanteRepository;
+        this.agendamentoRepository = agendamentoRepository;
         this.autorizacaoService = autorizacaoService;
+        this.clock = clock;
     }
 
-    // O autor e sempre o estudante logado: o campo "estudante" do corpo e ignorado
+    // O estudante avalia uma tutoria dele que ja aconteceu, uma unica vez.
+    // Autor, tutor, data e hora sao definidos aqui; os do corpo sao ignorados.
     @Transactional
     public Avaliacao salvar(Avaliacao avaliacao, UserSpringSecurity usuarioLogado) {
         Estudante autor = autorizacaoService.estudanteLogado(usuarioLogado);
         validarNota(avaliacao.getNota());
-        avaliacao.setTutor(resolverTutor(avaliacao.getTutor()));
+
+        LocalDateTime agora = LocalDateTime.now(clock);
+        Agendamento tutoria = tutoriaAvaliavel(avaliacao.getAgendamento(), autor, agora);
+
+        avaliacao.setId(null);
+        avaliacao.setComentario(limparComentario(avaliacao.getComentario()));
+        avaliacao.setAgendamento(tutoria);
+        avaliacao.setTutor(tutoria.getTutor());
         avaliacao.setEstudante(autor);
+        avaliacao.setDataAvaliacao(agora.toLocalDate());
+        avaliacao.setHoraAvaliacao(agora.toLocalTime().withNano(0));
         return avaliacaoRepository.save(avaliacao);
+    }
+
+    private Agendamento tutoriaAvaliavel(Agendamento ref, Estudante autor, LocalDateTime agora) {
+        if (ref == null || ref.getId() == null) {
+            throw new IllegalArgumentException("Informe a tutoria avaliada (agendamento.id)");
+        }
+        // Trava a tutoria ate o fim da transacao: dois envios simultaneos
+        // (clique duplo) nao conseguem gravar duas avaliacoes
+        Agendamento tutoria = agendamentoRepository.findByIdParaAlterar(ref.getId())
+                .orElseThrow(() -> new ObjectNotFoundException("Tutoria nao encontrada: " + ref.getId()));
+
+        if (tutoria.getEstudante() == null || !tutoria.getEstudante().getId().equals(autor.getId())) {
+            throw new AccessDeniedException("Você só pode avaliar as suas próprias tutorias");
+        }
+        boolean aconteceu = (tutoria.getStatus() == AgendamentoStatusEnum.CONFIRMADO
+                || tutoria.getStatus() == AgendamentoStatusEnum.REALIZADO)
+                && tutoria.comecouAte(agora);
+        if (!aconteceu) {
+            throw new IllegalArgumentException("Só é possível avaliar uma tutoria depois que ela acontece");
+        }
+        if (avaliacaoRepository.existsByAgendamento_Id(tutoria.getId())) {
+            throw new DataBindingViolationException("Esta tutoria já foi avaliada");
+        }
+        return tutoria;
     }
 
     @Transactional(readOnly = true)
@@ -92,21 +136,15 @@ public class AvaliacaoService {
         Avaliacao existente = avaliacaoRepository.findById(id)
                 .orElseThrow(() -> new ObjectNotFoundException("Avaliacao nao encontrada: " + id));
 
-        if (dados.getDataAvaliacao() != null) {
-            existente.setDataAvaliacao(dados.getDataAvaliacao());
-        }
-        if (dados.getHoraAvaliacao() != null) {
-            existente.setHoraAvaliacao(dados.getHoraAvaliacao());
-        }
+        // Moderacao: so nota e comentario mudam (comentario vazio remove o
+        // texto, ex.: ofensivo). Tutor, estudante, tutoria, data e hora
+        // registram quem avaliou o que e quando.
         if (dados.getNota() != null) {
             validarNota(dados.getNota());
             existente.setNota(dados.getNota());
         }
-        if (dados.getTutor() != null && dados.getTutor().getId() != null) {
-            existente.setTutor(resolverTutor(dados.getTutor()));
-        }
-        if (dados.getEstudante() != null && dados.getEstudante().getId() != null) {
-            existente.setEstudante(resolverEstudante(dados.getEstudante()));
+        if (dados.getComentario() != null) {
+            existente.setComentario(limparComentario(dados.getComentario()));
         }
         return avaliacaoRepository.save(existente);
     }
@@ -124,25 +162,23 @@ public class AvaliacaoService {
         }
     }
 
+    // Opcional: em branco vira nulo; espacos nas pontas sao removidos
+    private String limparComentario(String comentario) {
+        if (comentario == null || comentario.isBlank()) {
+            return null;
+        }
+        String limpo = comentario.strip();
+        if (limpo.length() > Avaliacao.MAX_COMENTARIO) {
+            throw new IllegalArgumentException(
+                    "O comentário deve ter no máximo " + Avaliacao.MAX_COMENTARIO + " caracteres");
+        }
+        return limpo;
+    }
+
     private void validarNota(Integer nota) {
         if (nota == null || nota < 1 || nota > 5) {
             throw new IllegalArgumentException("Nota deve ser inteira de 1 a 5");
         }
     }
 
-    private Tutor resolverTutor(Tutor ref) {
-        if (ref == null || ref.getId() == null) {
-            throw new IllegalArgumentException("tutor.id e obrigatorio");
-        }
-        return tutorRepository.findById(ref.getId())
-                .orElseThrow(() -> new ObjectNotFoundException("Tutor nao encontrado: " + ref.getId()));
-    }
-
-    private Estudante resolverEstudante(Estudante ref) {
-        if (ref == null || ref.getId() == null) {
-            throw new IllegalArgumentException("estudante.id e obrigatorio");
-        }
-        return estudanteRepository.findById(ref.getId())
-                .orElseThrow(() -> new ObjectNotFoundException("Estudante nao encontrado: " + ref.getId()));
-    }
 }

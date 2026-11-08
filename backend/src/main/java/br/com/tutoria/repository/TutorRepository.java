@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface TutorRepository extends JpaRepository<Tutor, Long> {
@@ -23,4 +24,8 @@ public interface TutorRepository extends JpaRepository<Tutor, Long> {
             ORDER BY u.nome ASC
             """)
     List<Tutor> findByUsuarioStatus(@Param("status") UsuarioStatusEnum status);
+
+    // IDs dos usuarios que tem perfil de tutor (para listar o tipo de cada usuario)
+    @Query("SELECT x.usuario.id FROM Tutor x")
+    Set<Long> findTodosUsuarioIds();
 }

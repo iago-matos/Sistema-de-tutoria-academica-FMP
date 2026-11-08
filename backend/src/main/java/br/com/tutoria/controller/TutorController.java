@@ -1,6 +1,8 @@
 package br.com.tutoria.controller;
 
 import br.com.tutoria.Security.UserSpringSecurity;
+import br.com.tutoria.dto.AdicionarDisciplinaDTO;
+import br.com.tutoria.dto.TutorDisciplinaDTO;
 import br.com.tutoria.dto.TutorResumoDTO;
 import br.com.tutoria.model.Agendamento;
 import br.com.tutoria.model.Avaliacao;
@@ -8,7 +10,9 @@ import br.com.tutoria.model.Tutor;
 import br.com.tutoria.service.AgendamentoService;
 import br.com.tutoria.service.AutorizacaoService;
 import br.com.tutoria.service.AvaliacaoService;
+import br.com.tutoria.service.DisciplinaService;
 import br.com.tutoria.service.TutorService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -32,16 +36,19 @@ public class TutorController {
     private final AgendamentoService agendamentoService;
     private final AvaliacaoService avaliacaoService;
     private final AutorizacaoService autorizacaoService;
+    private final DisciplinaService disciplinaService;
 
     public TutorController(
             TutorService tutorService,
             AgendamentoService agendamentoService,
             AvaliacaoService avaliacaoService,
-            AutorizacaoService autorizacaoService) {
+            AutorizacaoService autorizacaoService,
+            DisciplinaService disciplinaService) {
         this.tutorService = tutorService;
         this.agendamentoService = agendamentoService;
         this.avaliacaoService = avaliacaoService;
         this.autorizacaoService = autorizacaoService;
+        this.disciplinaService = disciplinaService;
     }
 
     // Perfis de tutor nascem no cadastro; criar direto e so para administradores
@@ -69,11 +76,31 @@ public class TutorController {
         return tutorService.atualizar(id, tutor);
     }
 
-    @DeleteMapping("/{id}")
+    // Nao ha DELETE: contas sao inativadas em PUT /usuario/{id}/inativar,
+    // para guardar o historico (sessoes, avaliacoes e mensagens)
+
+    // ── Guia "Disciplinas" do tutor logado ───────────────────────────────────
+
+    @GetMapping("/me/disciplinas")
+    public List<TutorDisciplinaDTO> minhasDisciplinas(@AuthenticationPrincipal UserSpringSecurity usuarioLogado) {
+        return disciplinaService.doTutor(autorizacaoService.tutorLogado(usuarioLogado));
+    }
+
+    // A disciplina pedida fica aguardando a aprovacao da coordenacao
+    @PostMapping("/me/disciplinas")
+    @ResponseStatus(HttpStatus.CREATED)
+    public TutorDisciplinaDTO pedirDisciplina(
+            @Valid @RequestBody AdicionarDisciplinaDTO dados,
+            @AuthenticationPrincipal UserSpringSecurity usuarioLogado) {
+        return disciplinaService.pedir(autorizacaoService.tutorLogado(usuarioLogado), dados.disciplinaId());
+    }
+
+    @DeleteMapping("/me/disciplinas/{vinculoId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasRole('ADMIN')")
-    public void deletar(@PathVariable Long id) {
-        tutorService.deletar(id);
+    public void removerDisciplina(
+            @PathVariable Long vinculoId,
+            @AuthenticationPrincipal UserSpringSecurity usuarioLogado) {
+        disciplinaService.remover(autorizacaoService.tutorLogado(usuarioLogado), vinculoId);
     }
 
     @GetMapping("/{id}/agendamentos")

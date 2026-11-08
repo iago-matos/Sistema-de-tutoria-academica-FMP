@@ -4,10 +4,8 @@ import br.com.tutoria.model.Estudante;
 import br.com.tutoria.model.Usuario;
 import br.com.tutoria.repository.EstudanteRepository;
 import br.com.tutoria.repository.UsuarioRepository;
-import br.com.tutoria.service.exceptions.DataBindingViolationException;
 import br.com.tutoria.service.exceptions.ObjectNotFoundException;
 
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,9 +50,6 @@ public class EstudanteService {
         Estudante existente = estudanteRepository.findById(id)
                 .orElseThrow(() -> new ObjectNotFoundException("Estudante nao encontrado: " + id));
 
-        if (dados.getDiaDaSemana() != null) {
-            existente.setDiaDaSemana(dados.getDiaDaSemana());
-        }
         if (dados.getUsuario() != null && dados.getUsuario().getId() != null) {
             Usuario u = usuarioRepository.findById(dados.getUsuario().getId())
                     .orElseThrow(() -> new ObjectNotFoundException(
@@ -64,16 +59,4 @@ public class EstudanteService {
         return estudanteRepository.save(existente);
     }
 
-    @Transactional
-    public void deletar(Long id) {
-        if (!estudanteRepository.existsById(id)) {
-            throw new ObjectNotFoundException("Estudante nao encontrado: " + id);
-        }
-        try {
-            estudanteRepository.deleteById(id);
-        } catch (DataIntegrityViolationException ex) {
-            throw new DataBindingViolationException(
-                    "Nao e possivel excluir pois ha entidades relacionadas");
-        }
-    }
 }

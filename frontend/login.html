@@ -7,29 +7,71 @@
     <link rel="stylesheet" href="css/global.css">
     <script src="javascript/api.js"></script>
     <script src="javascript/auth.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", initLoginPage);
+    </script>
 </head>
 <body class="auth-page">
     <div class="auth-card">
         <div class="auth-brand">
             <div class="brand-mark">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;color:#fff;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;color:#fff;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             </div>
             <strong>Tutoria Acadêmica</strong>
         </div>
-        <h2>Bem-vindo de volta</h2>
-        <form id="loginForm" onsubmit="handleLoginSubmit(event)">
-            <div class="field">
-                <label for="email">Email</label>
-                <input type="email" id="email" required placeholder="seu@email.com">
+
+        <div id="loginArea">
+            <h2>Bem-vindo de volta</h2>
+
+            <!-- Aparece quando o backend tem GOOGLE_CLIENT_ID configurado -->
+            <div id="googleLogin" class="google-login" style="display:none;">
+                <div id="googleButton" class="google-button"></div>
+                <div class="auth-divider"><span>ou entre com e-mail e senha</span></div>
             </div>
-            <div class="field">
-                <label for="senha">Senha</label>
-                <input type="password" id="senha" required placeholder="••••••••">
-            </div>
-            <button class="btn" type="submit">Entrar</button>
-        </form>
+
+            <form id="loginForm" onsubmit="handleLoginSubmit(event)">
+                <div class="field">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required placeholder="seu@email.com">
+                </div>
+                <div class="field">
+                    <label for="senha">Senha</label>
+                    <input type="password" id="senha" required placeholder="••••••••">
+                </div>
+                <button class="btn" type="submit">Entrar</button>
+            </form>
+        </div>
+
+        <!-- Primeiro acesso com Google: escolha do perfil -->
+        <div id="googleCadastro" style="display:none;">
+            <h2>Complete seu cadastro</h2>
+            <p class="google-identidade">
+                <strong id="googleCadastroNome"></strong>
+                <span id="googleCadastroEmail"></span>
+            </p>
+            <form id="googleCadastroForm" onsubmit="handleGoogleCadastroSubmit(event)">
+                <div class="field">
+                    <label for="tipo">Eu sou</label>
+                    <select id="tipo" required>
+                        <option value="ESTUDANTE">Estudante</option>
+                        <option value="TUTOR">Tutor</option>
+                    </select>
+                </div>
+                <div class="field" id="campoDisciplina" style="display:none;">
+                    <label for="disciplina">Disciplina em que vai ser tutor</label>
+                    <select id="disciplina">
+                        <option value="">Carregando...</option>
+                    </select>
+                    <span class="field-hint">Depois de aprovado, você pode pedir outras na guia Disciplinas.</span>
+                </div>
+                <p class="muted" style="font-size:0.85rem;" id="avisoTipo"></p>
+                <button class="btn" type="submit">Concluir cadastro</button>
+                <button class="btn ghost" type="button" onclick="cancelarCadastroGoogle()">Voltar</button>
+            </form>
+        </div>
+
         <div id="feedback" style="display:none;margin-top:12px;"></div>
-        <p class="auth-footer">
+        <p class="auth-footer" id="authFooter">
             Não possui cadastro? <a href="signup.html">Cadastrar-se</a>
         </p>
     </div>

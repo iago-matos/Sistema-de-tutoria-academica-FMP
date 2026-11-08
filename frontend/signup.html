@@ -8,18 +8,27 @@
     <script src="javascript/api.js"></script>
     <script src="javascript/auth.js"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", bindTipoCadastro);
+        document.addEventListener("DOMContentLoaded", initSignupPage);
     </script>
 </head>
 <body class="auth-page">
     <div class="auth-card">
         <div class="auth-brand">
             <div class="brand-mark">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;color:#fff;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;color:#fff;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             </div>
             <strong>Tutoria Acadêmica</strong>
         </div>
         <h2>Criar conta</h2>
+        <!-- Mostrado quando o backend desligou o cadastro com senha (CADASTRO_COM_SENHA=false) -->
+        <div id="signupDesativado" style="display:none;">
+            <p class="muted" style="text-align:center;">
+                O cadastro é feito com a sua conta Google institucional.
+                Na tela de login, clique em <strong>Fazer login com o Google</strong>
+                e escolha o seu perfil no primeiro acesso.
+            </p>
+            <a class="btn" href="login.html">Ir para o login</a>
+        </div>
         <form id="signupForm" onsubmit="handleSignupSubmit(event)">
             <div class="field">
                 <label for="nome">Nome completo</label>
@@ -40,21 +49,11 @@
                     <option value="TUTOR">Tutor</option>
                 </select>
             </div>
-            <div class="field" id="campoDiaDaSemana">
-                <label for="diaDaSemana">Dia da semana com disponibilidade</label>
-                <select id="diaDaSemana" required>
-                    <option value="">Selecione</option>
-                    <option>Segunda-feira</option>
-                    <option>Terça-feira</option>
-                    <option>Quarta-feira</option>
-                    <option>Quinta-feira</option>
-                    <option>Sexta-feira</option>
-                    <option>Sábado</option>
-                </select>
-            </div>
             <div class="field" id="campoDisciplina" style="display:none;">
                 <label for="disciplina">Disciplina em que vai ser tutor</label>
-                <input type="text" id="disciplina" maxlength="120" placeholder="Ex.: Banco de Dados">
+                <select id="disciplina">
+                    <option value="">Carregando...</option>
+                </select>
             </div>
             <p class="muted" style="font-size:0.85rem;">Seu acesso será liberado depois que um administrador aprovar o cadastro.</p>
             <button class="btn" type="submit">Cadastrar</button>

@@ -45,10 +45,17 @@ public class SecurityConfig {
             "/"
     };
 
+    private static final String[] PUBLIC_MATCHERS_GET = {
+            "/login/config",
+            // Lista de disciplinas: o tutor escolhe no primeiro acesso, antes do login
+            "/disciplina"
+    };
+
     private static final String[] PUBLIC_MATCHERS_POST = {
             "/usuario",
             "/user",
-            "/login"
+            "/login",
+            "/login/google"
     };
 
     @Bean
@@ -88,9 +95,7 @@ public class SecurityConfig {
             return;
         }
         UsuarioStatusEnum status = ((UserSpringSecurity) usuario).getStatus();
-        throw new DisabledException(status == UsuarioStatusEnum.RECUSADO
-                ? "Seu cadastro foi recusado. Procure a coordenação."
-                : "Seu cadastro está aguardando a aprovação de um administrador.");
+        throw new DisabledException(UserSpringSecurity.motivoDoBloqueio(status));
     }
 
     @Bean
@@ -117,6 +122,7 @@ public class SecurityConfig {
         .csrf(csrf -> csrf.disable())
         .authorizeHttpRequests(authz -> authz
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers(HttpMethod.GET, PUBLIC_MATCHERS_GET).permitAll()
                 .requestMatchers(HttpMethod.POST, PUBLIC_MATCHERS_POST).permitAll()
                 .requestMatchers(PUBLIC_MATCHERS).permitAll()
                 .anyRequest().authenticated()

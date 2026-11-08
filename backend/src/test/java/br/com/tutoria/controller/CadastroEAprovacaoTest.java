@@ -29,7 +29,6 @@ class CadastroEAprovacaoTest extends IntegracaoTestBase {
         corpo.put("email", email);
         corpo.put("senha", SENHA_PADRAO);
         corpo.put("tipo", "ESTUDANTE");
-        corpo.put("diaDaSemana", "Terça");
         return corpo;
     }
 
@@ -62,13 +61,14 @@ class CadastroEAprovacaoTest extends IntegracaoTestBase {
         corpo.put("email", "bruno@teste.com");
         corpo.put("senha", SENHA_PADRAO);
         corpo.put("tipo", "TUTOR");
-        corpo.put("disciplina", "Banco de Dados");
+        corpo.put("disciplinaId", disciplinaService.buscarPorNome("Banco de Dados").orElseThrow().getId());
 
         cadastrar(corpo);
 
         Usuario usuario = usuarioRepository.findByEmail("bruno@teste.com").orElseThrow();
-        assertThat(tutorRepository.findByUsuario_Id(usuario.getId()))
-                .get().extracting("disciplina").isEqualTo("Banco de Dados");
+        Long tutorId = tutorRepository.findByUsuario_Id(usuario.getId()).orElseThrow().getId();
+        assertThat(disciplinaService.ativasDoTutor(tutorId))
+                .extracting("nome").containsExactly("Banco de Dados");
     }
 
     // Antes desta correcao, enviar "profiles": ["ADMIN"] no cadastro criava um administrador

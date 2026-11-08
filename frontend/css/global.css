@@ -10,15 +10,15 @@
   --dark:       #0f172a;
   --body:       #334155;
   --muted:      #64748b;
-  --subtle:     #94a3b8;
+  --subtle:     #64748b; /* era #94a3b8 (2,5:1); escurecido para atingir 4,5:1 no branco */
   --line:       #e2e8f0;
   --line-soft:  #f1f5f9;
   --surface:    #f8fafc;
   --white:      #ffffff;
 
-  --success:    #16a34a;
+  --success:    #15803d; /* era #16a34a; 4,5:1+ sobre --success-bg */
   --success-bg: #f0fdf4;
-  --warning:    #d97706;
+  --warning:    #b45309; /* era #d97706; 4,5:1+ sobre --warning-bg */
   --warning-bg: #fffbeb;
   --danger:     #dc2626;
   --danger-bg:  #fef2f2;
@@ -243,6 +243,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 600; line-height: 1.25; color: var(--dark)
   margin-bottom: 32px;
 }
 .stats-row.four-cols { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.stats-row.five-cols { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 
 .stat-card {
   display: flex;
@@ -554,7 +555,7 @@ th {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--subtle);
+  color: var(--body); /* sobre --line-soft, --subtle não chega a 4,5:1 */
   background: var(--line-soft);
   text-align: left;
   border-bottom: 1px solid var(--line);
@@ -640,6 +641,16 @@ tbody tr:hover td { background: #fafbfc; }
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
+
+/* Campo + botao na mesma linha (guias "Disciplinas"); empilha no celular */
+.disciplina-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.disciplina-form .field { flex: 1 1 240px; }
+.disciplina-form .btn { min-height: 40px; }
 
 /* ─────────────────────────────────────────────
    STATES (loading / empty / error)
@@ -776,6 +787,43 @@ tbody tr:hover td { background: #fafbfc; }
   color: var(--muted);
 }
 .auth-footer a { color: var(--blue); font-weight: 600; }
+
+/* Login com Google */
+.google-login { margin-bottom: 4px; }
+.google-button {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 16px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.google-identidade {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin: -8px 0 18px;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.google-identidade strong { color: var(--dark); font-size: 0.9375rem; }
 
 /* ─────────────────────────────────────────────
    LANDING / REDIRECT
@@ -977,7 +1025,7 @@ tbody tr:hover td { background: #fafbfc; }
 
 .cal-session.blue   { background: var(--blue); }
 .cal-session.purple { background: var(--purple); }
-.cal-session.green  { background: #16a34a; }
+.cal-session.green  { background: var(--success); }
 .cal-session.teal   { background: #0d9488; }
 
 /* ─────────────────────────────────────────────
@@ -1050,6 +1098,17 @@ tbody tr:hover td { background: #fafbfc; }
   border-top: 1px solid var(--line);
 }
 
+/* Modal largo com conteudo rolavel (popup da disciplina) */
+.modal.modal-lg {
+  width: min(100%, 680px);
+  max-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+}
+.modal.modal-lg .modal-header { margin-bottom: 16px; }
+.modal-scroll { overflow-y: auto; margin: 0 -6px; padding: 0 6px; }
+body.modal-aberto { overflow: hidden; }
+
 .modal-footer .btn.secondary { flex: 1; justify-content: center; color: var(--body); font-weight: 500; }
 .modal-footer .btn:not(.secondary) { flex: 1.4; }
 
@@ -1111,7 +1170,8 @@ tbody tr:hover td { background: #fafbfc; }
 ───────────────────────────────────────────── */
 @media (max-width: 1100px) {
   .stats-row,
-  .stats-row.four-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stats-row.four-cols,
+  .stats-row.five-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .content-grid.two-col { grid-template-columns: 1fr; }
 }
 
@@ -1133,7 +1193,8 @@ tbody tr:hover td { background: #fafbfc; }
   .sidebar-footer { margin-top: 0; padding-top: 0; border-top: none; flex-direction: row; }
   .main-panel { padding: 20px 16px 32px; }
   .stats-row,
-  .stats-row.four-cols { grid-template-columns: 1fr 1fr; }
+  .stats-row.four-cols,
+  .stats-row.five-cols { grid-template-columns: 1fr 1fr; }
   .page-header-row { flex-direction: column; gap: 12px; }
   .search-box { min-width: 0; width: 100%; }
   .form-row { grid-template-columns: 1fr; }
@@ -1166,3 +1227,399 @@ tbody tr:hover td { background: #fafbfc; }
 .btn-group .btn:hover { background: var(--line-soft); filter: none; color: var(--dark); }
 .btn-group .btn.active { color: var(--dark); font-weight: 600; background: var(--white); }
 .btn-group .btn + .btn { border-left: 1px solid var(--line); }
+
+/* ─────────────────────────────────────────────
+   DISCIPLINAS (guia "Tutores" do estudante)
+───────────────────────────────────────────── */
+.disciplina-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+.disciplina-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 18px 20px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: box-shadow var(--transition), border-color var(--transition), transform var(--transition);
+}
+.disciplina-card:hover { box-shadow: var(--shadow-md); border-color: #cbd5e1; transform: translateY(-1px); }
+.disciplina-card:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.disciplina-card .stat-icon { width: 40px; height: 40px; }
+.disciplina-nome { font-size: 1rem; font-weight: 600; color: var(--dark); line-height: 1.3; }
+.disciplina-meta { font-size: 0.8125rem; color: var(--muted); }
+.disciplina-meta strong { color: var(--body); font-weight: 600; }
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--blue);
+  text-decoration: none;
+}
+.back-link:hover { text-decoration: underline; }
+
+/* Cartao de tutor dentro da disciplina, com a lista de horarios */
+.tutor-detalhe {
+  padding: 20px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+.tutor-detalhe + .tutor-detalhe { margin-top: 12px; }
+.tutor-detalhe-header { display: flex; align-items: center; gap: 14px; }
+.slot-list { margin-top: 16px; border-top: 1px solid var(--line-soft); }
+.slot-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.slot-item:last-child { border-bottom: none; padding-bottom: 0; }
+.slot-when { min-width: 0; flex: 1; }
+.slot-date { font-size: 0.875rem; font-weight: 600; color: var(--dark); }
+.slot-obs { margin-top: 2px; font-size: 0.8125rem; color: var(--muted); font-style: italic; }
+.slot-empty { margin-top: 14px; font-size: 0.8125rem; color: var(--muted); }
+
+/* ─────────────────────────────────────────────
+   AGENDA DO TUTOR: semana, status e detalhes
+───────────────────────────────────────────── */
+.cal-week-nav { display: flex; align-items: center; gap: 8px; }
+.cal-week-label { min-width: 150px; text-align: center; font-size: 0.875rem; font-weight: 600; color: var(--dark); }
+.cal-session.disponivel {
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1.5px dashed #86efac;
+}
+.cal-session.pendente { background: var(--warning); }
+.cal-session.confirmado { background: var(--blue); }
+.cal-session.realizado { background: #0d9488; }
+.cal-cell.past { cursor: default; background: var(--line-soft); }
+.cal-cell.past:hover { background: var(--line-soft); }
+.cal-cell.past .cal-cell-add { display: none !important; }
+
+.duration-fixed {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.detail-list { display: grid; grid-template-columns: 110px 1fr; gap: 10px 12px; margin: 0; }
+.detail-list dt { font-size: 0.8125rem; color: var(--muted); }
+.detail-list dd { margin: 0; font-size: 0.875rem; color: var(--dark); word-break: break-word; }
+
+@media (max-width: 640px) {
+  .slot-item { flex-wrap: wrap; }
+  .slot-item .item-actions { width: 100%; }
+  .slot-item .item-actions .btn { flex: 1; }
+}
+
+/* Modalidade do horario (presencial / online) */
+.slot-modalidade { margin-top: 2px; font-size: 0.8125rem; color: var(--muted); }
+.slot-link { margin-top: 2px; font-size: 0.8125rem; color: var(--muted); overflow-wrap: anywhere; }
+.slot-link a { color: var(--blue); font-weight: 600; }
+.field-hint { font-size: 0.75rem; color: var(--muted); }
+.link-row { display: flex; gap: 8px; align-items: center; }
+.link-row input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--dark);
+}
+.link-row input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgb(20 136 202 / 0.15); }
+.detail-list a { color: var(--blue); font-weight: 500; font-size: 0.8125rem; }
+
+/* ─────────────────────────────────────────────
+   AVALIAR TUTORIA (estudante)
+───────────────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.avaliar-form { display: flex; flex-direction: column; gap: 22px; }
+
+.avaliar-passo { border: 0; min-width: 0; }
+.avaliar-passo legend {
+  margin-bottom: 12px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--dark);
+}
+.avaliar-passo:disabled { opacity: 0.45; }
+
+/* Avatares em fila, como os stories: arraste para o lado se houver muitos */
+.tutor-stories {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none; /* o avatar cortado na borda ja indica que ha mais */
+}
+.tutor-stories::-webkit-scrollbar { display: none; }
+.tutor-stories > .empty-state,
+.tutor-stories > .loading-state,
+.tutor-stories > .error-state { flex: 1; }
+
+.story {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 72px;
+  flex-shrink: 0;
+  cursor: pointer;
+  scroll-snap-align: start;
+  text-align: center;
+}
+
+.story-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 66px;
+  height: 66px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  padding: 3px;
+  background: conic-gradient(from 200deg, var(--blue), var(--purple), #f59e0b, var(--blue));
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.story-ring .avatar {
+  width: 100%;
+  height: 100%;
+  font-size: 1.05rem;
+  border: 3px solid var(--white);
+}
+.story:hover .story-ring { transform: scale(1.05); }
+
+/* Tudo avaliado: anel cinza, como um story ja visto, e nao da para escolher */
+.story.avaliado { cursor: default; }
+.story.avaliado .story-ring { background: var(--line); }
+.story.avaliado:hover .story-ring { transform: none; }
+.story.avaliado .avatar { opacity: 0.6; }
+
+/* Tutoria agendada que ainda nao aconteceu: perfil aparece, com cadeado */
+.story.bloqueado { cursor: default; }
+.story.bloqueado .story-ring { background: repeating-conic-gradient(var(--subtle) 0 10deg, transparent 10deg 20deg); }
+.story.bloqueado:hover .story-ring { transform: none; }
+.story.bloqueado .story-meta { color: var(--warning); font-weight: 500; }
+.story-cadeado {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.story-cadeado svg { width: 12px; height: 12px; }
+
+/* Mais de uma tutoria para avaliar com o mesmo tutor */
+.story-contador {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--danger);
+  border: 2px solid var(--white);
+  color: var(--white);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.avaliar-qual {
+  margin: -6px 0 10px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.story-check {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--blue);
+  border: 2px solid var(--white);
+  color: var(--white);
+}
+.story-check svg { width: 13px; height: 13px; }
+
+.story input:checked + .story-ring { box-shadow: 0 0 0 3px var(--white), 0 0 0 5px var(--blue); }
+.story input:checked + .story-ring .story-check { display: grid; }
+.story input:checked ~ .story-nome { color: var(--blue); }
+.story input:focus-visible + .story-ring { outline: 2px solid var(--blue); outline-offset: 5px; }
+
+.story-nome {
+  max-width: 100%;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.story-meta {
+  max-width: 100%;
+  font-size: 0.6875rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Estrelas grandes: um toque e a nota esta dada */
+.rating-input { display: flex; justify-content: center; gap: 4px; }
+.rating-star {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--r);
+  cursor: pointer;
+}
+.avaliar-passo:disabled .rating-star { cursor: not-allowed; }
+.rating-star svg {
+  width: 40px;
+  height: 40px;
+  fill: var(--line);
+  transition: fill var(--transition), transform var(--transition);
+}
+.rating-star.on svg { fill: #f59e0b; }
+.rating-star.previa svg { fill: #fbbf24; }
+.rating-star:hover svg { transform: scale(1.12); }
+.rating-star:has(input:focus-visible) { outline: 2px solid var(--blue); outline-offset: 1px; }
+
+.rating-label {
+  margin-top: 8px;
+  min-height: 1.4em;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.rating-label.ativo { color: var(--dark); font-weight: 600; }
+
+.avaliar-comentario { margin-top: 18px; }
+.avaliar-comentario textarea { min-height: 84px; resize: vertical; }
+.field-opcional { font-weight: 400; color: var(--muted); }
+.comentario-contador { align-self: flex-end; }
+
+/* Comentario do estudante dentro do card da avaliacao */
+.review-comentario {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--line);
+  background: var(--surface);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  font-size: 0.875rem;
+  color: var(--body);
+  line-height: 1.55;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.avaliar-enviar { width: 100%; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .story:hover .story-ring, .rating-star:hover svg { transform: none; }
+}
+
+/* ─────────────────────────────────────────────
+   COORDENACAO: AVALIACOES POR TUTOR
+───────────────────────────────────────────── */
+.tutor-avaliacoes {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+.tutor-avaliacoes + .tutor-avaliacoes { margin-top: 10px; }
+
+.tutor-avaliacoes > summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  cursor: pointer;
+  list-style: none;
+  border-radius: var(--r-lg);
+}
+.tutor-avaliacoes > summary::-webkit-details-marker { display: none; }
+.tutor-avaliacoes > summary:hover { background: var(--surface); }
+.tutor-avaliacoes > summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.tutor-avaliacoes > summary .avatar { flex-shrink: 0; }
+.tutor-avaliacoes > summary .item-name,
+.tutor-avaliacoes > summary .item-meta { display: block; }
+.tutor-avaliacoes > summary .stars { flex-shrink: 0; }
+
+/* Seta que gira ao abrir */
+.tutor-avaliacoes-seta {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg);
+  transition: transform 0.15s ease;
+}
+.tutor-avaliacoes[open] .tutor-avaliacoes-seta { transform: rotate(-135deg); }
+.tutor-avaliacoes[open] > summary { border-radius: var(--r-lg) var(--r-lg) 0 0; }
+
+.tutor-avaliacoes-lista {
+  padding: 14px 20px 18px;
+  border-top: 1px solid var(--line-soft);
+  background: var(--surface);
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+}
+
+@media (max-width: 720px) {
+  .tutor-avaliacoes > summary { flex-wrap: wrap; }
+  .tutor-avaliacoes > summary .stars { order: 3; width: 100%; padding-left: 54px; }
+}

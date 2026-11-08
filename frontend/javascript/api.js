@@ -131,6 +131,47 @@ async function loginRequest(email, senha) {
     return token;
 }
 
+// Opcoes da tela de login: client ID do Google, dominio institucional e se o
+// cadastro com senha esta ligado. Rota publica.
+async function fetchLoginConfig() {
+    const response = await fetch(API_BASE + "/login/config");
+    if (!response.ok) {
+        throw new Error("Nao foi possivel carregar as opcoes de login");
+    }
+    return response.json();
+}
+
+// Envia o ID token do Google (e, no primeiro acesso, o perfil escolhido).
+// Devolve o corpo da resposta; em AUTENTICADO o token ja fica salvo.
+async function loginGoogleRequest(payload) {
+    let response;
+    try {
+        response = await fetch(API_BASE + "/login/google", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+    } catch (networkErr) {
+        throw new Error("Sem conexão com o servidor. Verifique se o backend está rodando.");
+    }
+
+    if (!response.ok) {
+        throw new Error(await readErrorMessage(response) || "Nao foi possivel entrar com o Google");
+    }
+
+    const body = await response.json();
+
+    if (body.situacao === "AUTENTICADO") {
+        const token = response.headers.get("Authorization");
+        if (!token) {
+            throw new Error("Token nao recebido");
+        }
+        localStorage.setItem("Authorization", token);
+    }
+
+    return body;
+}
+
 async function signupRequest(payload) {
     const response = await fetch(API_BASE + "/usuario", {
         method: "POST",
@@ -213,9 +254,73 @@ async function createAgendamento(payload) {
     return postJSON("/agendamento", payload);
 }
 
-// O backend identifica o estudante pelo token; nao e preciso enviar o ID
-async function solicitarAgendamento(agendamentoId) {
-    return putJSON("/agendamento/" + agendamentoId + "/solicitar", {});
+// O backend identifica o estudante pelo token; nao e preciso enviar o ID.
+// modalidade: "PRESENCIAL" (padrao) ou "ONLINE" (se o tutor deixou link)
+// disciplinaId: a disciplina da tutoria (obrigatoria se o tutor atende mais de uma)
+async function solicitarAgendamento(agendamentoId, modalidade, disciplinaId) {
+    return putJSON("/agendamento/" + agendamentoId + "/solicitar", {
+        modalidade: modalidade || "PRESENCIAL",
+        disciplinaId: disciplinaId || null
+    });
+}
+
+// ── Disciplinas ──────────────────────────────────────────────────────────
+
+// Lista mantida pela coordenacao. Rota publica: usada no primeiro acesso, antes do login
+async function fetchDisciplinas() {
+    let response;
+    try {
+        response = await fetch(API_BASE + "/disciplina");
+    } catch (networkErr) {
+        throw new Error("Sem conexão com o servidor. Verifique se o backend está rodando.");
+    }
+    if (!response.ok) {
+        throw new Error("Não foi possível carregar as disciplinas");
+    }
+    return response.json();
+}
+
+// Coordenacao (admin)
+async function criarDisciplina(nome) {
+    return postJSON("/disciplina", { nome: nome });
+}
+
+async function renomearDisciplina(id, nome) {
+    return putJSON("/disciplina/" + id, { nome: nome });
+}
+
+async function excluirDisciplina(id) {
+    return deleteJSON("/disciplina/" + id);
+}
+
+async function fetchPedidosDisciplina() {
+    return requestJSON("/disciplina/pedidos");
+}
+
+async function aprovarPedidoDisciplina(id) {
+    return putJSON("/disciplina/pedidos/" + id + "/aprovar", {});
+}
+
+async function recusarPedidoDisciplina(id) {
+    return putJSON("/disciplina/pedidos/" + id + "/recusar", {});
+}
+
+// Tutor logado: guia "Disciplinas"
+async function fetchMinhasDisciplinas() {
+    return requestJSON("/tutor/me/disciplinas");
+}
+
+async function pedirDisciplina(disciplinaId) {
+    return postJSON("/tutor/me/disciplinas", { disciplinaId: disciplinaId });
+}
+
+async function removerMinhaDisciplina(vinculoId) {
+    return deleteJSON("/tutor/me/disciplinas/" + vinculoId);
+}
+
+// Link da videoconferencia: o tutor sempre ve; o estudante, depois da confirmacao
+async function fetchLinkReuniao(agendamentoId) {
+    return requestJSON("/agendamento/" + agendamentoId + "/link-reuniao");
 }
 
 async function updateAgendamento(id, payload) {
@@ -224,4 +329,36 @@ async function updateAgendamento(id, payload) {
 
 async function createAvaliacao(payload) {
     return postJSON("/avaliacao", payload);
+}
+
+
+// ── Agendamento: metodos da classe Agendamento no backend ─────────────────
+
+// visualizar(): agenda de quem esta logado (tutor ou estudante)
+async function fetchMinhaAgenda() {
+    return requestJSON("/agendamento/minha-agenda");
+}
+
+// visualizar(Disciplina): horarios livres de uma disciplina
+async function fetchHorariosPorDisciplina(disciplina) {
+    return requestJSON("/agendamento/disponiveis?disciplina=" + encodeURIComponent(disciplina));
+}
+
+// Tutor: cancela a sessao. Estudante: desiste e o horario volta a ficar livre.
+async function cancelarAgendamento(id) {
+    return putJSON("/agendamento/" + id + "/cancelar", {});
+}
+
+// Coordenacao: inativa a conta. Nada e apagado (sessoes, avaliacoes e mensagens ficam)
+async function inativarUsuario(usuarioId) {
+    return putJSON("/usuario/" + usuarioId + "/inativar", {});
+}
+
+async function reativarUsuario(usuarioId) {
+    return putJSON("/usuario/" + usuarioId + "/reativar", {});
+}
+
+// Apaga nome e e-mail (LGPD) a pedido do proprio usuario, feito na secretaria. Irreversivel.
+async function anonimizarUsuario(usuarioId) {
+    return putJSON("/usuario/" + usuarioId + "/anonimizar", {});
 }

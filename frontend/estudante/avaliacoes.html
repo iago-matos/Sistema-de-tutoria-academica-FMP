@@ -22,17 +22,34 @@
                     <div id="avaliacoesLista"></div>
                 </section>
                 <section class="panel">
-                    <div class="panel-header"><h2>Nova avaliação</h2></div>
+                    <div class="panel-header"><h2>Avaliar tutoria</h2></div>
                     <div class="panel-body stack">
-                        <form id="avaliacaoForm" class="stack">
-                            <div class="field"><label for="tutorSelect">Tutor</label><select id="tutorSelect" required></select></div>
-                            <div class="field"><label for="nota">Nota (1-5)</label><input type="number" id="nota" min="1" max="5" required></div>
-                            <div class="field"><label for="dataAvaliacao">Data</label><input type="date" id="dataAvaliacao" required></div>
-                            <div class="field"><label for="horaAvaliacao">Hora</label><input type="time" id="horaAvaliacao" required></div>
-                            <div class="field"><label for="comentario">Comentário (integração pendente)</label><textarea id="comentario" disabled placeholder="Disponível quando o backend suportar comentário"></textarea></div>
-                            <button class="btn" type="submit">Registrar avaliação</button>
+                        <!-- Data e hora nao sao pedidas: o servidor registra o momento do envio -->
+                        <form id="avaliacaoForm" class="avaliar-form" novalidate>
+                            <fieldset class="avaliar-passo">
+                                <legend>Quem você quer avaliar?</legend>
+                                <div id="tutoresAvaliaveis" class="tutor-stories">
+                                    <div class="loading-state">Carregando suas tutorias...</div>
+                                </div>
+                            </fieldset>
+
+                            <fieldset class="avaliar-passo" id="notaPasso" disabled>
+                                <legend id="notaLegenda">Como foi a tutoria?</legend>
+                                <p class="avaliar-qual" id="qualTutoria" hidden></p>
+                                <div class="rating-input" id="ratingInput"></div>
+                                <p class="rating-label" id="ratingLabel" aria-live="polite">Escolha um tutor acima</p>
+
+                                <div class="field avaliar-comentario">
+                                    <label for="comentario">Comentário <span class="field-opcional">(opcional)</span></label>
+                                    <textarea id="comentario" name="comentario" rows="3" maxlength="500"
+                                        placeholder="Conte o que ajudou ou o que pode melhorar" aria-describedby="comentarioContador"></textarea>
+                                    <span class="field-hint comentario-contador" id="comentarioContador">0/500</span>
+                                </div>
+                            </fieldset>
+
+                            <button class="btn lg avaliar-enviar" id="avaliarEnviar" type="submit" disabled>Enviar avaliação</button>
                         </form>
-                        <div id="feedback" style="display:none;"></div>
+                        <div id="feedback" style="display:none;" role="status"></div>
                     </div>
                 </section>
             </section>

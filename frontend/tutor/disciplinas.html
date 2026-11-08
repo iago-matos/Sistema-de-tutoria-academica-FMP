@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disciplinas — Tutor | Tutoria Acadêmica</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <script src="../javascript/api.js"></script>
+    <script src="../javascript/auth.js"></script>
+    <script src="../javascript/layout.js"></script>
+    <script src="../javascript/utils.js"></script>
+    <script defer src="../javascript/dashboard.js"></script>
+</head>
+<body data-page="tutor-disciplinas" data-role="tutor" data-nav="disciplinas">
+    <div class="app-shell">
+        <aside class="sidebar" id="sidebar"></aside>
+        <main class="main-panel">
+            <header class="page-header" id="pageHeader"></header>
+            <div id="loading" class="loading-state">Carregando disciplinas...</div>
+            <div id="feedback" style="display:none;margin-bottom:16px;"></div>
+
+            <div class="panel" style="margin-bottom:20px;">
+                <div class="panel-header"><h2>Minhas disciplinas</h2></div>
+                <div class="panel-body">
+                    <div class="table-wrap"><table id="minhasDisciplinasTable"></table></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header"><h2>Atender outra disciplina</h2></div>
+                <div class="panel-body">
+                    <form id="pedirDisciplinaForm" class="disciplina-form">
+                        <div class="field">
+                            <label for="novaDisciplina">Disciplina</label>
+                            <select id="novaDisciplina" required></select>
+                        </div>
+                        <button class="btn" type="submit">Pedir disciplina</button>
+                    </form>
+                    <p class="field-hint" style="margin-top:10px;">
+                        A coordenação aprova o pedido antes de a disciplina aparecer para os estudantes.
+                        Não encontrou a sua? Peça à coordenação para incluí-la na lista.
+                    </p>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

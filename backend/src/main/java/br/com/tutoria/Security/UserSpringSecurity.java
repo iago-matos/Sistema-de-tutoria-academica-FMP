@@ -69,6 +69,17 @@ public class UserSpringSecurity implements UserDetails {
     }
 
 
+    // Motivo mostrado a quem tenta entrar com uma conta que nao esta ativa.
+    // Igual no login com senha e no login com Google.
+    public static String motivoDoBloqueio(UsuarioStatusEnum status) {
+        return switch (status) {
+            case RECUSADO -> "Seu cadastro foi recusado. Procure a coordenação.";
+            case INATIVO -> "Sua conta foi desativada. Procure a coordenação.";
+            default -> "Seu cadastro está aguardando a aprovação de um administrador.";
+        };
+    }
+
+
     public boolean hasRole(ProfileEnum profileEnum) {
         return getAuthorities().contains(new SimpleGrantedAuthority(profileEnum.getDescription()));
     }

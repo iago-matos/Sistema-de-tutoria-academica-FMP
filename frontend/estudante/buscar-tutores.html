@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tutores disponíveis | Tutoria Acadêmica</title>
+    <title>Disciplinas | Tutoria Acadêmica</title>
     <link rel="stylesheet" href="../css/global.css">
     <script src="../javascript/api.js"></script>
     <script src="../javascript/auth.js"></script>
@@ -16,9 +16,27 @@
         <aside class="sidebar" id="sidebar"></aside>
         <main class="main-panel">
             <header class="page-header" id="pageHeader"></header>
-            <div id="loading" class="loading-state">Carregando tutores...</div>
+            <div id="loading" class="loading-state">Carregando disciplinas...</div>
+            <div id="feedback" style="display:none;margin-bottom:16px;"></div>
             <div id="tutoresLista"></div>
         </main>
+    </div>
+
+    <!-- Popup da disciplina: tutores, avaliacoes, horarios e solicitacao -->
+    <div class="modal-overlay" id="disciplinaModal" aria-hidden="true">
+        <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="disciplinaModalTitle">
+            <div class="modal-header">
+                <div>
+                    <div class="modal-title" id="disciplinaModalTitle"></div>
+                    <div class="modal-subtitle" id="disciplinaModalSubtitle"></div>
+                </div>
+                <button class="modal-close" id="disciplinaModalClose" type="button" aria-label="Fechar">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div id="disciplinaFeedback" style="display:none;margin-bottom:12px;"></div>
+            <div class="modal-scroll" id="disciplinaDetalhe"></div>
+        </div>
     </div>
 </body>
 </html>

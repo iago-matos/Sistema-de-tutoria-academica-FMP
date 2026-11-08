@@ -1,11 +1,12 @@
 package br.com.tutoria.model;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -35,8 +36,11 @@ public class Tutor {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String disciplina;
+    // Disciplinas do tutor (ativas, pendentes e recusadas). O antigo campo de
+    // texto "disciplina" foi migrado para esta lista pelo AjusteDeEsquema.
+    @OneToMany(mappedBy = "tutor")
+    @JsonIgnore
+    private List<TutorDisciplina> vinculosDisciplina = new ArrayList<>();
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false, unique = true)
@@ -53,5 +57,13 @@ public class Tutor {
     @JsonIgnore
     private List<Avaliacao> avaliacoes = new ArrayList<>();
 
-    
+    // Vai no JSON como "disciplinas": so as aprovadas, em ordem alfabetica
+    @JsonProperty("disciplinas")
+    public List<Disciplina> getDisciplinasAtivas() {
+        return vinculosDisciplina.stream()
+                .filter(TutorDisciplina::isAtiva)
+                .map(TutorDisciplina::getDisciplina)
+                .sorted(Comparator.comparing(Disciplina::getNome, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
 }

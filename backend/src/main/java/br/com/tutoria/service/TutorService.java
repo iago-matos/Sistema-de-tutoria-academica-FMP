@@ -1,6 +1,7 @@
 package br.com.tutoria.service;
 
 import br.com.tutoria.dto.AvaliacaoEstatisticaDTO;
+import br.com.tutoria.dto.DisciplinaDTO;
 import br.com.tutoria.dto.TutorResumoDTO;
 import br.com.tutoria.model.Tutor;
 import br.com.tutoria.model.Usuario;
@@ -8,10 +9,8 @@ import br.com.tutoria.model.enums.UsuarioStatusEnum;
 import br.com.tutoria.repository.AvaliacaoRepository;
 import br.com.tutoria.repository.TutorRepository;
 import br.com.tutoria.repository.UsuarioRepository;
-import br.com.tutoria.service.exceptions.DataBindingViolationException;
 import br.com.tutoria.service.exceptions.ObjectNotFoundException;
 
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,25 +25,34 @@ public class TutorService {
     private final TutorRepository tutorRepository;
     private final UsuarioRepository usuarioRepository;
     private final AvaliacaoRepository avaliacaoRepository;
+    private final DisciplinaService disciplinaService;
 
     public TutorService(
             TutorRepository tutorRepository,
             UsuarioRepository usuarioRepository,
-            AvaliacaoRepository avaliacaoRepository) {
+            AvaliacaoRepository avaliacaoRepository,
+            DisciplinaService disciplinaService) {
         this.tutorRepository = tutorRepository;
         this.usuarioRepository = usuarioRepository;
         this.avaliacaoRepository = avaliacaoRepository;
+        this.disciplinaService = disciplinaService;
     }
 
     // Lista publica: apenas tutores com conta ativa, com a media das avaliacoes
+    // e as disciplinas aprovadas
     @Transactional(readOnly = true)
     public List<TutorResumoDTO> listarResumos() {
         Map<Long, AvaliacaoEstatisticaDTO> estatisticas = avaliacaoRepository.calcularEstatisticasPorTutor()
                 .stream()
                 .collect(Collectors.toMap(AvaliacaoEstatisticaDTO::tutorId, Function.identity()));
 
-        return tutorRepository.findByUsuarioStatus(UsuarioStatusEnum.ATIVO).stream()
-                .map(tutor -> paraResumo(tutor, estatisticas.get(tutor.getId())))
+        List<Tutor> tutores = tutorRepository.findByUsuarioStatus(UsuarioStatusEnum.ATIVO);
+        Map<Long, List<DisciplinaDTO>> disciplinas =
+                disciplinaService.ativasPorTutor(tutores.stream().map(Tutor::getId).toList());
+
+        return tutores.stream()
+                .map(tutor -> paraResumo(tutor, disciplinas.getOrDefault(tutor.getId(), List.of()),
+                        estatisticas.get(tutor.getId())))
                 .toList();
     }
 
@@ -55,13 +63,15 @@ public class TutorService {
                 .filter(e -> e.tutorId().equals(id))
                 .findFirst()
                 .orElse(null);
-        return paraResumo(tutor, estatistica);
+        List<DisciplinaDTO> disciplinas = disciplinaService.ativasDoTutor(id).stream().map(DisciplinaDTO::de).toList();
+        return paraResumo(tutor, disciplinas, estatistica);
     }
 
-    private static TutorResumoDTO paraResumo(Tutor tutor, AvaliacaoEstatisticaDTO estatistica) {
+    private static TutorResumoDTO paraResumo(Tutor tutor, List<DisciplinaDTO> disciplinas,
+            AvaliacaoEstatisticaDTO estatistica) {
         return new TutorResumoDTO(
                 tutor.getId(),
-                tutor.getDisciplina(),
+                disciplinas,
                 new TutorResumoDTO.UsuarioNomeDTO(tutor.getUsuario().getId(), tutor.getUsuario().getNome()),
                 estatistica != null ? estatistica.media() : null,
                 estatistica != null ? estatistica.total() : 0L);
@@ -95,9 +105,7 @@ public class TutorService {
         Tutor existente = tutorRepository.findById(id)
                 .orElseThrow(() -> new ObjectNotFoundException("Tutor nao encontrado: " + id));
 
-        if (dados.getDisciplina() != null) {
-            existente.setDisciplina(dados.getDisciplina());
-        }
+        // As disciplinas mudam pela guia "Disciplinas" (tutor) e "Aprovações" (coordenacao)
         if (dados.getUsuario() != null && dados.getUsuario().getId() != null) {
             Usuario u = usuarioRepository.findById(dados.getUsuario().getId())
                     .orElseThrow(() -> new ObjectNotFoundException(
@@ -107,16 +115,4 @@ public class TutorService {
         return tutorRepository.save(existente);
     }
 
-    @Transactional
-    public void deletar(Long id) {
-        if (!tutorRepository.existsById(id)) {
-            throw new ObjectNotFoundException("Tutor nao encontrado: " + id);
-        }
-        try {
-            tutorRepository.deleteById(id);
-        } catch (DataIntegrityViolationException ex) {
-            throw new DataBindingViolationException(
-                    "Nao e possivel excluir pois ha entidades relacionadas");
-        }
-    }
 }

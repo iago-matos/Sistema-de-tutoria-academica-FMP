@@ -32,13 +32,16 @@ class PermissoesTest extends IntegracaoTestBase {
     @Autowired private AgendamentoRepository agendamentoRepository;
     @Autowired private AvaliacaoRepository avaliacaoRepository;
 
+    // Leva a sessao ate o status pedido pelos metodos da propria entidade
     private Agendamento criarSessao(Tutor tutor, String status, Estudante estudante) {
-        Agendamento agendamento = new Agendamento();
-        agendamento.setTutor(tutor);
-        agendamento.setEstudante(estudante);
-        agendamento.setStatus(status);
-        agendamento.setData(LocalDate.now().plusDays(3));
-        agendamento.setHora(LocalTime.of(14, 0));
+        Agendamento agendamento = Agendamento.disponibilizar(
+                tutor, LocalDate.now().plusDays(3), LocalTime.of(14, 0), null);
+        if (estudante != null) {
+            agendamento.agendar(estudante);
+        }
+        if ("CONFIRMADO".equals(status)) {
+            agendamento.confirmar();
+        }
         return agendamentoRepository.save(agendamento);
     }
 
@@ -207,7 +210,7 @@ class PermissoesTest extends IntegracaoTestBase {
                 .content(json(Map.of(
                         "data", LocalDate.now().plusDays(1).toString(),
                         "hora", "09:00",
-                        "tutor", Map.of("id", outro.getId())))))
+                        "tutorId", outro.getId()))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.tutor.id").value(tutor.getId()))
                 .andExpect(jsonPath("$.status").value("DISPONIVEL"));
@@ -222,23 +225,134 @@ class PermissoesTest extends IntegracaoTestBase {
                 .andExpect(status().isForbidden());
     }
 
+    // Tutoria de ontem, confirmada: o estudante ja pode avaliar o tutor
+    private Agendamento criarTutoriaPassada(Tutor tutor, Estudante estudante) {
+        Agendamento agendamento = Agendamento.disponibilizar(
+                tutor, LocalDate.now().minusDays(1), LocalTime.of(14, 0), null);
+        agendamento.agendar(estudante);
+        agendamento.confirmar();
+        return agendamentoRepository.save(agendamento);
+    }
+
+    private org.springframework.test.web.servlet.ResultActions avaliar(
+            Estudante autor, Agendamento tutoria, Map<String, Object> extras) throws Exception {
+        Map<String, Object> corpo = new java.util.HashMap<>(extras);
+        corpo.putIfAbsent("nota", 4);
+        corpo.put("agendamento", Map.of("id", tutoria.getId()));
+        return mockMvc.perform(post("/avaliacao")
+                .header("Authorization", tokenDe(autor.getUsuario()))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(corpo)));
+    }
+
     @Test
     void avaliacaoERegistradaEmNomeDoEstudanteLogado() throws Exception {
         Estudante ana = criarEstudante("ana@teste.com");
         Estudante bia = criarEstudante("bia@teste.com");
         Tutor tutor = criarTutor("tutor@teste.com");
+        Tutor outroTutor = criarTutor("outro@teste.com");
+        Agendamento tutoria = criarTutoriaPassada(tutor, ana);
+
+        // estudante e tutor do corpo sao ignorados: valem os da tutoria
+        avaliar(ana, tutoria, Map.of(
+                "estudante", Map.of("id", bia.getId()),
+                "tutor", Map.of("id", outroTutor.getId())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.estudante.id").value(ana.getId()))
+                .andExpect(jsonPath("$.tutor.id").value(tutor.getId()))
+                .andExpect(jsonPath("$.agendamentoId").value(tutoria.getId()));
+    }
+
+    @Test
+    void dataEHoraDaAvaliacaoSaoDefinidasPeloSistema() throws Exception {
+        Estudante ana = criarEstudante("ana@teste.com");
+        Agendamento tutoria = criarTutoriaPassada(criarTutor("tutor@teste.com"), ana);
+
+        avaliar(ana, tutoria, Map.of("dataAvaliacao", "2000-01-01", "horaAvaliacao", "03:00"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.dataAvaliacao").value(org.hamcrest.Matchers.not("2000-01-01")))
+                .andExpect(jsonPath("$.horaAvaliacao").exists());
+    }
+
+    @Test
+    void comentarioEOpcionalESalvoSemEspacosNasPontas() throws Exception {
+        Estudante ana = criarEstudante("ana@teste.com");
+        Tutor tutor = criarTutor("tutor@teste.com");
+
+        avaliar(ana, criarTutoriaPassada(tutor, ana), Map.of("comentario", "  Muito didático!  "))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.comentario").value("Muito didático!"));
+
+        Agendamento outra = Agendamento.disponibilizar(tutor, LocalDate.now().minusDays(3), LocalTime.of(8, 0), null);
+        outra.agendar(ana);
+        outra.confirmar();
+        agendamentoRepository.save(outra);
+        avaliar(ana, outra, Map.of("comentario", "   "))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.comentario").isEmpty());
+    }
+
+    @Test
+    void comentarioMuitoLongoERecusado() throws Exception {
+        Estudante ana = criarEstudante("ana@teste.com");
+        Agendamento tutoria = criarTutoriaPassada(criarTutor("tutor@teste.com"), ana);
+
+        avaliar(ana, tutoria, Map.of("comentario", "a".repeat(501)))
+                .andExpect(status().isBadRequest());
+        assertThat(avaliacaoRepository.existsByAgendamento_Id(tutoria.getId())).isFalse();
+    }
+
+    @Test
+    void cadaTutoriaSoPodeSerAvaliadaUmaVez() throws Exception {
+        Estudante ana = criarEstudante("ana@teste.com");
+        Tutor tutor = criarTutor("tutor@teste.com");
+        Agendamento primeira = criarTutoriaPassada(tutor, ana);
+
+        avaliar(ana, primeira, Map.of("nota", 5)).andExpect(status().isCreated());
+        avaliar(ana, primeira, Map.of("nota", 1)).andExpect(status().isConflict());
+
+        // Outra tutoria com o mesmo tutor pode ser avaliada
+        Agendamento segunda = Agendamento.disponibilizar(
+                tutor, LocalDate.now().minusDays(2), LocalTime.of(9, 0), null);
+        segunda.agendar(ana);
+        segunda.confirmar();
+        agendamentoRepository.save(segunda);
+        avaliar(ana, segunda, Map.of("nota", 3)).andExpect(status().isCreated());
+
+        assertThat(avaliacaoRepository.findByTutor_Id(tutor.getId())).hasSize(2);
+    }
+
+    @Test
+    void tutoriaQueAindaNaoAconteceuNaoPodeSerAvaliada() throws Exception {
+        Estudante ana = criarEstudante("ana@teste.com");
+        Tutor tutor = criarTutor("tutor@teste.com");
+        Agendamento futura = criarSessao(tutor, "CONFIRMADO", ana);
+
+        avaliar(ana, futura, Map.of()).andExpect(status().isBadRequest());
+
+        assertThat(avaliacaoRepository.findByTutor_Id(tutor.getId())).isEmpty();
+    }
+
+    @Test
+    void estudanteNaoAvaliaTutoriaDeOutroEstudante() throws Exception {
+        Estudante ana = criarEstudante("ana@teste.com");
+        Estudante bia = criarEstudante("bia@teste.com");
+        Agendamento daBia = criarTutoriaPassada(criarTutor("tutor@teste.com"), bia);
+
+        avaliar(ana, daBia, Map.of()).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void avaliacaoSemTutoriaInformadaERecusada() throws Exception {
+        Estudante ana = criarEstudante("ana@teste.com");
+        Tutor tutor = criarTutor("tutor@teste.com");
+        criarTutoriaPassada(tutor, ana);
 
         mockMvc.perform(post("/avaliacao")
                 .header("Authorization", tokenDe(ana.getUsuario()))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(json(Map.of(
-                        "nota", 4,
-                        "dataAvaliacao", LocalDate.now().toString(),
-                        "horaAvaliacao", "10:00",
-                        "tutor", Map.of("id", tutor.getId()),
-                        "estudante", Map.of("id", bia.getId())))))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.estudante.id").value(ana.getId()));
+                .content(json(Map.of("nota", 4, "tutor", Map.of("id", tutor.getId())))))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -250,8 +364,6 @@ class PermissoesTest extends IntegracaoTestBase {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json(Map.of(
                         "nota", 5,
-                        "dataAvaliacao", LocalDate.now().toString(),
-                        "horaAvaliacao", "10:00",
                         "tutor", Map.of("id", tutor.getId())))))
                 .andExpect(status().isForbidden());
     }
@@ -268,7 +380,6 @@ class PermissoesTest extends IntegracaoTestBase {
         Usuario pendente = criarUsuario("tutor-pendente@teste.com", UsuarioStatusEnum.PENDENTE);
         Tutor tutorPendente = new Tutor();
         tutorPendente.setUsuario(pendente);
-        tutorPendente.setDisciplina("Redes");
         tutorRepository.save(tutorPendente);
 
         mockMvc.perform(get("/tutor").header("Authorization", tokenDe(aluno.getUsuario())))

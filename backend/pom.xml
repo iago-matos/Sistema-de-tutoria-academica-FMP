@@ -90,6 +90,12 @@
 		<scope>runtime</scope>
 	</dependency>
 
+	<!-- Valida o ID token do "Fazer login com Google" (assinatura pelas chaves publicas do Google) -->
+	<dependency>
+		<groupId>org.springframework.security</groupId>
+		<artifactId>spring-security-oauth2-jose</artifactId>
+	</dependency>
+
     </dependencies>
 
     <build>

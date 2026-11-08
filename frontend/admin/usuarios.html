@@ -17,6 +17,12 @@
         <main class="main-panel">
             <header class="page-header" id="pageHeader"></header>
             <div id="loading" class="loading-state">Carregando usuários...</div>
+            <div id="feedback" style="display:none;margin-bottom:16px;"></div>
+            <div class="btn-group" id="filtroTipo" role="group" aria-label="Filtrar por tipo" style="margin-bottom:16px;">
+                <button class="btn active" type="button" data-tipo="TODOS">Todos</button>
+                <button class="btn" type="button" data-tipo="TUTOR">Tutores</button>
+                <button class="btn" type="button" data-tipo="ESTUDANTE">Estudantes</button>
+            </div>
             <div class="panel">
                 <div class="panel-body">
                     <div class="table-wrap"><table id="usuariosTable"></table></div>

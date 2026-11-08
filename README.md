@@ -112,6 +112,42 @@ que em desenvolvimento ficam no arquivo `backend/.env` (ignorado pelo Git).
    - `ADMIN_EMAILS`: e-mails dos administradores, separados por virgula
    - `ADMIN_SENHA_INICIAL`: senha dos administradores criados pela primeira vez
      (minimo de 8 caracteres)
+   - `GOOGLE_CLIENT_ID`: ID do cliente OAuth do login com Google (veja abaixo).
+     Vazio: o botao do Google nao aparece
+   - `GOOGLE_DOMINIOS`: dominios aceitos no login com Google, separados por
+     virgula (padrao `fmpsc.edu.br,aluno.fmpsc.edu.br`)
+   - `CADASTRO_COM_SENHA`: `true` reativa o cadastro com e-mail e senha. Use so em
+     desenvolvimento; o padrao e `false`
+
+### Login com Google
+
+Os e-mails da FMP (`@fmpsc.edu.br` e `@aluno.fmpsc.edu.br`) sao contas Google
+Workspace, entao o aluno entra com o botao **Fazer login com o Google**. O backend
+so aceita contas desses dominios, com e-mail verificado pelo Google. E gratuito.
+
+1. No [Google Cloud Console](https://console.cloud.google.com/), crie um projeto
+   (por exemplo, `tutoria-fmp`)
+2. Em *APIs e servicos → Tela de consentimento OAuth* (ou *Google Auth Platform*):
+   tipo de usuario **Externo**, nome do app, e-mail de suporte. Os escopos
+   `openid`, `email` e `profile` sao basicos e nao passam por verificacao do Google.
+   Publique o app (*Em producao*); em modo de teste, so os e-mails cadastrados
+   como testadores conseguem entrar
+3. Em *Credenciais → Criar credenciais → ID do cliente OAuth*, tipo **Aplicativo
+   da Web**. Em *Origens JavaScript autorizadas*, adicione o endereco de onde o
+   frontend e aberto, sem barra no final:
+   - desenvolvimento: `http://localhost` e `http://localhost:5500` (Live Server)
+   - producao: o endereco do frontend no GitHub Pages, `https://iago-matos.github.io`
+
+   Nao e preciso URI de redirecionamento nem chave secreta.
+4. Copie o *ID do cliente* (termina em `.apps.googleusercontent.com`) para
+   `GOOGLE_CLIENT_ID` e reinicie o backend
+
+Abra o frontend por `http://localhost:5500`, e nao por `127.0.0.1`: o Google so
+mostra o botao nas origens cadastradas no passo 3.
+
+Se a FMP bloquear apps de terceiros no Google Workspace, o Google mostra
+"Acesso bloqueado" ao entrar. Nesse caso, a TI da FMP precisa liberar o ID do
+cliente em *Admin Console → Seguranca → Controles de API*.
 
 Cada pessoa da equipe tem o seu proprio `.env`. Se uma variavel obrigatoria
 faltar, a aplicacao nao sobe e a mensagem de erro indica qual.
@@ -153,15 +189,40 @@ O endereco da API esta fixo em `frontend/javascript/api.js`:
 const API_BASE = "http://localhost:8080";
 ```
 
+### Frontend publicado (GitHub Pages)
+
+O workflow `.github/workflows/pages.yml` publica a pasta `frontend/` a cada push
+na `main` que altere o frontend (ou manualmente, pela aba *Actions*). Endereco:
+<https://iago-matos.github.io/Sistema-de-tutoria-academica-FMP/>
+
+Primeira vez: em *Settings → Pages → Source*, escolha **GitHub Actions**.
+
+Enquanto o backend roda localmente, a pagina publicada so funciona no computador
+que esta rodando o backend:
+
+- inclua `https://iago-matos.github.io` em `CORS_ALLOWED_ORIGINS`;
+- o Chrome pede permissao para o site acessar a rede local; aceite;
+- para o login com Google, cadastre a mesma origem no Google Cloud Console.
+
+Quando o backend estiver na Azure, troque o `API_BASE` pelo endereco dele.
+
 ## Cadastro e acesso
 
 1. **Administradores:** ao subir, a aplicacao garante que cada e-mail de
    `ADMIN_EMAILS` exista como administrador ativo. Se o e-mail ainda nao existir,
    a conta e criada com a senha `ADMIN_SENHA_INICIAL`.
-2. **Estudantes e tutores** se cadastram pela tela de cadastro, escolhendo o tipo
-   de perfil. A conta nasce **PENDENTE**.
-3. Um administrador aprova ou recusa o cadastro na tela **Aprovacoes**.
-4. So contas **ATIVAS** conseguem fazer login.
+2. **Estudantes e tutores** entram com a conta Google institucional
+   (`@fmpsc.edu.br` ou `@aluno.fmpsc.edu.br`). No primeiro acesso, escolhem o perfil:
+   - **Estudante:** a conta ja nasce **ATIVA**, porque o e-mail institucional
+     comprova o vinculo com a faculdade;
+   - **Tutor:** escolhe uma disciplina da lista e a conta nasce **PENDENTE**.
+     Um administrador aprova ou recusa na tela **Aprovacoes** (a disciplina
+     escolhida e aprovada junto com a conta).
+3. Se ja existir uma conta com o mesmo e-mail (criada com senha), o login com
+   Google entra nela.
+4. O cadastro com e-mail e senha fica desligado (`CADASTRO_COM_SENHA=false`).
+   Contas antigas, como as dos administradores, continuam entrando com senha.
+5. So contas **ATIVAS** conseguem fazer login.
 
 ## Permissoes
 
@@ -180,16 +241,53 @@ enviados no corpo.
 | Ver os proprios agendamentos e avaliacoes | sim | sim | todos |
 | Listar estudantes, avaliacoes e agendamentos de todos | nao | nao | sim |
 | Coordenadores, aprovacao de cadastros, usuarios | nao | nao | sim |
+| Pedir para atender outra disciplina | nao | sim (aguarda aprovacao) | nao |
+| Manter a lista de disciplinas e aprovar pedidos de disciplina | nao | nao | sim |
 
 Cadastrar um coordenador **nao** concede o perfil de administrador.
 
+## Disciplinas
+
+- A **coordenacao** (admin) mantem a lista de disciplinas na guia **Disciplinas**.
+  A lista inicial vem de `DISCIPLINAS_INICIAIS` (padrao: Matematica, Logica de
+  Programacao, Banco de Dados e Algoritmos) e so e criada no primeiro uso.
+- O **tutor** pode atender varias disciplinas. A do cadastro ja vale; as pedidas
+  depois, na guia **Disciplinas** do tutor, ficam aguardando a aprovacao na guia
+  **Aprovacoes**. O tutor precisa manter ao menos uma disciplina ativa.
+- O **horario livre** do tutor aparece em todas as disciplinas ativas dele. Ao
+  solicitar, o estudante escolhe a disciplina, que fica registrada na tutoria.
+- Bancos criados antes desta versao sao migrados ao subir a aplicacao
+  (`AjusteDeEsquema`): o texto antigo da disciplina de cada tutor vira uma
+  disciplina da lista, e a coluna antiga e apagada.
+
 ## Autenticacao
 
-- `POST /usuario` — cadastro (rota publica). Corpo:
-  `{ "nome", "email", "senha", "tipo": "ESTUDANTE" | "TUTOR", "diaDaSemana" | "disciplina" }`
+- `GET /login/config` — rota publica com `googleClientId`, `dominioInstitucional`
+  e `cadastroComSenha`, usada pela tela de login
+- `POST /login/google` — recebe `{ "credential": "<ID token do Google>" }`.
+  Respostas pelo campo `situacao`:
+  - `AUTENTICADO` (200): token JWT no header `Authorization`;
+  - `CADASTRO_NECESSARIO` (200): primeiro acesso. Reenvie com
+    `"tipo": "ESTUDANTE" | "TUTOR"` e, para tutor, `"disciplinaId"` (da lista);
+  - `AGUARDANDO_APROVACAO` (202): conta de tutor criada, pendente.
+
+  Conta de outro dominio, ou pendente, recusada ou inativa: **403** com o motivo.
+  Token invalido ou expirado: **401**.
+- `POST /usuario` — cadastro com senha (rota publica; **403** se
+  `CADASTRO_COM_SENHA=false`). Corpo:
+  `{ "nome", "email", "senha", "tipo": "ESTUDANTE" | "TUTOR", "disciplinaId" }`
+  (`disciplina` so para tutor)
 - `POST /login` — recebe `{ "email": "...", "senha": "..." }` e devolve o token
   JWT no header `Authorization` da resposta. Conta pendente ou recusada recebe
   **403** com o motivo; credenciais erradas recebem **401**.
 - As demais rotas exigem o header `Authorization: Bearer <token>`
 - Rotas de administracao: `GET /usuario/pendentes`, `PUT /usuario/{id}/aprovar`,
   `PUT /usuario/{id}/recusar`
+- Disciplinas: `GET /disciplina` (publica); `POST`, `PUT /{id}` e `DELETE /{id}`
+  (admin); pedidos dos tutores em `GET /disciplina/pedidos` e
+  `PUT /disciplina/pedidos/{id}/aprovar|recusar` (admin)
+- Disciplinas do tutor logado: `GET` e `POST /tutor/me/disciplinas`
+  (`{ "disciplinaId" }`), `DELETE /tutor/me/disciplinas/{id}`
+- Solicitar tutoria: `PUT /agendamento/{id}/solicitar` com
+  `{ "modalidade", "disciplinaId" }`. A disciplina e obrigatoria quando o tutor
+  atende mais de uma.

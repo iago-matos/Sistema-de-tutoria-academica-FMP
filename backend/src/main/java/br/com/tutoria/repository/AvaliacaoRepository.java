@@ -15,6 +15,8 @@ public interface AvaliacaoRepository extends JpaRepository<Avaliacao, Long> {
 
     List<Avaliacao> findByEstudante_Id(Long estudanteId);
 
+    boolean existsByAgendamento_Id(Long agendamentoId);
+
     // Media e total por tutor numa unica consulta, sem enviar as avaliacoes ao cliente
     @Query("""
             SELECT new br.com.tutoria.dto.AvaliacaoEstatisticaDTO(a.tutor.id, AVG(a.nota), COUNT(a))
@@ -22,4 +24,5 @@ public interface AvaliacaoRepository extends JpaRepository<Avaliacao, Long> {
             GROUP BY a.tutor.id
             """)
     List<AvaliacaoEstatisticaDTO> calcularEstatisticasPorTutor();
+
 }

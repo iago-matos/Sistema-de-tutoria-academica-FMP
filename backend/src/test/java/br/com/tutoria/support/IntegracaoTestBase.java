@@ -21,10 +21,12 @@ import br.com.tutoria.model.Estudante;
 import br.com.tutoria.model.Tutor;
 import br.com.tutoria.model.Usuario;
 import br.com.tutoria.model.enums.ProfileEnum;
+import br.com.tutoria.model.enums.TutorDisciplinaStatusEnum;
 import br.com.tutoria.model.enums.UsuarioStatusEnum;
 import br.com.tutoria.repository.EstudanteRepository;
 import br.com.tutoria.repository.TutorRepository;
 import br.com.tutoria.repository.UsuarioRepository;
+import br.com.tutoria.service.DisciplinaService;
 
 // Base dos testes de integracao: sobe a aplicacao inteira com o banco H2 e
 // desfaz tudo o que cada teste gravou (@Transactional), para um nao afetar o outro.
@@ -45,6 +47,7 @@ public abstract class IntegracaoTestBase {
     @Autowired protected TutorRepository tutorRepository;
     @Autowired protected PasswordEncoder passwordEncoder;
     @Autowired protected JWTUtil jwtUtil;
+    @Autowired protected DisciplinaService disciplinaService;
 
     protected Usuario criarUsuario(String email, UsuarioStatusEnum status, ProfileEnum... perfis) {
         Usuario usuario = new Usuario();
@@ -62,15 +65,22 @@ public abstract class IntegracaoTestBase {
     protected Estudante criarEstudante(String email) {
         Estudante estudante = new Estudante();
         estudante.setUsuario(criarUsuario(email, UsuarioStatusEnum.ATIVO));
-        estudante.setDiaDaSemana("Segunda");
         return estudanteRepository.save(estudante);
     }
 
     protected Tutor criarTutor(String email) {
+        return criarTutorDe(email, "Algoritmos");
+    }
+
+    // Tutor ativo com as disciplinas ativas informadas (criadas na lista, se preciso)
+    protected Tutor criarTutorDe(String email, String... disciplinas) {
         Tutor tutor = new Tutor();
         tutor.setUsuario(criarUsuario(email, UsuarioStatusEnum.ATIVO));
-        tutor.setDisciplina("Algoritmos");
-        return tutorRepository.save(tutor);
+        tutorRepository.save(tutor);
+        for (String nome : disciplinas) {
+            disciplinaService.vincular(tutor, disciplinaService.buscarOuCriar(nome), TutorDisciplinaStatusEnum.ATIVA);
+        }
+        return tutor;
     }
 
     // Gera um token JWT valido para o usuario, como o login faria
