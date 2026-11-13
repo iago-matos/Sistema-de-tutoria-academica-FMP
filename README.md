@@ -183,11 +183,10 @@ esta como `false` e a pasta `frontend/` fica fora de `src/main/resources`.
 Abra `frontend/` com um servidor HTTP local (por exemplo, a extensao Live Server
 do VS Code). O CORS do backend aceita qualquer porta em `localhost` e `127.0.0.1`.
 
-O endereco da API esta fixo em `frontend/javascript/api.js`:
-
-```javascript
-const API_BASE = "http://localhost:8080";
-```
+O endereco da API fica em `frontend/javascript/api.js` e e escolhido pelo
+endereco da pagina: aberta em `localhost` ou `127.0.0.1` (Live Server), usa o
+backend local (`http://localhost:8080`); em qualquer outro endereco (GitHub
+Pages), usa o backend publicado na Azure (`API_PRODUCAO`).
 
 ### Frontend publicado (GitHub Pages)
 
@@ -197,14 +196,33 @@ na `main` que altere o frontend (ou manualmente, pela aba *Actions*). Endereco:
 
 Primeira vez: em *Settings → Pages → Source*, escolha **GitHub Actions**.
 
-Enquanto o backend roda localmente, a pagina publicada so funciona no computador
-que esta rodando o backend:
+### Backend publicado (Azure App Service)
 
-- inclua `https://iago-matos.github.io` em `CORS_ALLOWED_ORIGINS`;
-- o Chrome pede permissao para o site acessar a rede local; aceite;
-- para o login com Google, cadastre a mesma origem no Google Cloud Console.
+O workflow `.github/workflows/deploy-backend.yml` roda os testes, gera o `.jar`
+e publica no Azure App Service a cada push na `main` que altere o backend (ou
+manualmente, pela aba *Actions*). Se algum teste falhar, nada e publicado.
+Endereco: <https://tutoria-fmp-api-bsgce0ecazfedac0.brazilsouth-01.azurewebsites.net>
 
-Quando o backend estiver na Azure, troque o `API_BASE` pelo endereco dele.
+- **Recurso:** App Service `tutoria-fmp-api`, grupo `rg-tutoria`, regiao Brazil
+  South (a mesma do banco), Linux, Java 21 SE, plano **Gratuito F1**. A
+  assinatura Azure for Students so permite algumas regioes; Brazil South e uma
+  delas
+- **Configuracao:** as mesmas variaveis do `.env`, cadastradas em *App Service →
+  Configuracoes → Variaveis de ambiente*, mais
+  `WEBSITES_CONTAINER_START_TIME_LIMIT=600`, que da tempo ao banco pausado de
+  acordar enquanto a aplicacao sobe. Em producao, `CORS_ALLOWED_ORIGINS` e
+  `https://iago-matos.github.io`
+- **Banco:** no servidor SQL, *Rede → Permitir que servicos e recursos do Azure
+  acessem este servidor* precisa estar ligado
+- **GitHub:** em *Settings → Secrets and variables → Actions*, a variavel
+  `AZURE_WEBAPP_NAME` (`tutoria-fmp-api`) e o secret
+  `AZURE_WEBAPP_PUBLISH_PROFILE` (conteudo do perfil de publicacao baixado na
+  *Visao geral* do App Service; exige *Configuracao → Configuracoes gerais →
+  Credenciais de publicacao de autenticacao basica do SCM* ligado)
+
+No plano gratuito, o app desliga apos cerca de 20 minutos sem uso. O primeiro
+acesso depois disso leva de 1 a 2 minutos (o app sobe e o banco acorda); os
+seguintes sao normais. O limite e de 60 minutos de CPU por dia.
 
 ## Cadastro e acesso
 
