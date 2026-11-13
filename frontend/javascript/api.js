@@ -1,4 +1,11 @@
-const API_BASE = "http://localhost:8080";
+// Pagina aberta no computador (Live Server): usa o backend local.
+// Em qualquer outro endereco (GitHub Pages): usa o backend publicado na Azure.
+const API_LOCAL = "http://localhost:8080";
+const API_PRODUCAO = "https://tutoria-fmp-api-bsgce0ecazfedac0.brazilsouth-01.azurewebsites.net";
+
+const API_BASE = ["localhost", "127.0.0.1"].includes(window.location.hostname)
+    ? API_LOCAL
+    : API_PRODUCAO;
 
 function getToken() {
     return localStorage.getItem("Authorization");
