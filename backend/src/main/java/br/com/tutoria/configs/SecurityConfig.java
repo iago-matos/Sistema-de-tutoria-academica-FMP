@@ -55,7 +55,9 @@ public class SecurityConfig {
             "/usuario",
             "/user",
             "/login",
-            "/login/google"
+            "/login/google",
+            "/login/esqueci-senha",
+            "/login/redefinir-senha"
     };
 
     @Bean

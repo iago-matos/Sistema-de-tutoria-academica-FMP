@@ -1623,3 +1623,306 @@ body.modal-aberto { overflow: hidden; }
   .tutor-avaliacoes > summary { flex-wrap: wrap; }
   .tutor-avaliacoes > summary .stars { order: 3; width: 100%; padding-left: 54px; }
 }
+
+/* ─────────────────────────────────────────────
+   NOTIFICACOES (painel do sino)
+───────────────────────────────────────────── */
+.nav-link .notif-badge[hidden] { display: none; }
+
+.notif-panel {
+  position: fixed;
+  left: calc(var(--sidebar) + 12px);
+  bottom: 20px;
+  z-index: 200;
+  width: min(360px, calc(100vw - 32px));
+  max-height: min(480px, calc(100vh - 40px));
+  display: none;
+  flex-direction: column;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+}
+.notif-panel.open { display: flex; }
+
+.notif-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--dark);
+}
+
+.notif-list { overflow-y: auto; padding: 6px; }
+
+.notif-item {
+  display: flex;
+  gap: 12px;
+  padding: 10px 10px;
+  border-radius: var(--r-sm);
+  transition: background var(--transition);
+}
+.notif-item:hover, .notif-item:focus-visible { background: var(--line-soft); }
+
+.notif-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: var(--blue);
+}
+.notif-lembrete .notif-dot { background: var(--success); }
+.notif-avaliacao_pendente .notif-dot { background: var(--warning); }
+
+.notif-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.notif-text strong { color: var(--dark); font-size: 0.875rem; font-weight: 600; }
+.notif-text span { color: var(--muted); font-size: 0.8125rem; }
+
+.notif-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 16px;
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+.notif-empty svg { width: 28px; height: 28px; color: var(--success); }
+
+/* "?" agora e um link para o manual */
+a.help-btn { text-decoration: none; }
+
+/* ─────────────────────────────────────────────
+   CHAT (Mensagens)
+───────────────────────────────────────────── */
+.chat-layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  height: calc(100vh - 190px);
+  min-height: 440px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+}
+
+.chat-lista {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--line);
+}
+.chat-lista-titulo {
+  padding: 16px 18px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.chat-lista-itens { flex: 1; overflow-y: auto; padding: 0 8px 8px; }
+
+.chat-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.chat-item + .chat-item { margin-top: 2px; }
+.chat-item:hover { background: var(--line-soft); }
+.chat-item.ativa { background: #eff6ff; }
+.chat-item:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+.chat-item .avatar { flex-shrink: 0; }
+.chat-item .notif-badge { margin-left: 0; flex-shrink: 0; }
+
+.chat-item-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.chat-item-topo { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.chat-item-topo strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dark);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.chat-item-hora { flex-shrink: 0; font-size: 0.75rem; color: var(--muted); }
+.chat-item-previa {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.chat-item.nao-lida .chat-item-previa { color: var(--dark); font-weight: 500; }
+.chat-item-papel { font-size: 0.75rem; color: var(--subtle); }
+
+.chat-painel { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+
+.chat-vazio {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 32px 24px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.chat-vazio svg { width: 36px; height: 36px; color: var(--line); margin-bottom: 6px; }
+.chat-vazio a { color: var(--blue); font-weight: 600; }
+.chat-vazio[hidden] { display: none; }
+
+.chat-conversa { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.chat-conversa[hidden] { display: none; }
+
+.chat-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.chat-cabecalho strong { display: block; color: var(--dark); font-size: 0.9375rem; line-height: 1.3; }
+.chat-papel { font-size: 0.75rem; color: var(--muted); }
+.chat-voltar { display: none; font-size: 1.1rem; padding: 0 10px; }
+
+.chat-mensagens {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+  background: var(--surface);
+}
+
+.chat-dia {
+  align-self: center;
+  margin: 8px 0 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--line-soft);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.chat-inicio { margin: auto; color: var(--muted); font-size: 0.875rem; }
+
+.chat-msg {
+  max-width: min(72%, 560px);
+  padding: 8px 12px 6px;
+  border-radius: 14px;
+  box-shadow: var(--shadow-xs);
+}
+.chat-msg p { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.9rem; line-height: 1.45; }
+.chat-msg-hora { display: block; margin-top: 2px; font-size: 0.6875rem; text-align: right; opacity: 0.75; }
+.chat-msg.minha {
+  align-self: flex-end;
+  background: var(--blue);
+  color: var(--white);
+  border-bottom-right-radius: 4px;
+}
+.chat-msg.dele {
+  align-self: flex-start;
+  background: var(--white);
+  color: var(--dark);
+  border: 1px solid var(--line);
+  border-bottom-left-radius: 4px;
+}
+
+.chat-form {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--white);
+}
+.chat-form[hidden] { display: none; }
+.chat-form textarea {
+  flex: 1;
+  resize: none;
+  min-height: 40px;
+  max-height: 160px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--dark);
+  background: var(--white);
+}
+.chat-form textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgb(20 136 202 / 0.15); }
+.chat-form .btn { min-height: 40px; }
+.chat-form .btn:disabled { opacity: 0.6; cursor: wait; }
+.chat-contador {
+  position: absolute;
+  top: -22px;
+  right: 16px;
+  font-size: 0.75rem;
+  color: var(--warning);
+}
+
+.chat-encerrada {
+  margin: 0;
+  padding: 14px 18px;
+  border-top: 1px solid var(--line);
+  background: var(--warning-bg);
+  color: var(--warning);
+  font-size: 0.875rem;
+}
+.chat-encerrada[hidden] { display: none; }
+
+@media (max-width: 720px) {
+  .notif-panel { left: 16px; right: 16px; bottom: auto; top: 72px; width: auto; }
+  .nav-list { flex-wrap: wrap; }
+  .chat-layout { grid-template-columns: 1fr; height: calc(100vh - 330px); height: calc(100dvh - 330px); min-height: 360px; }
+  .chat-lista { border-right: none; }
+  .chat-layout .chat-painel { display: none; }
+  .chat-layout.mostrando-conversa .chat-lista { display: none; }
+  .chat-layout.mostrando-conversa .chat-painel { display: flex; }
+  .chat-voltar { display: inline-flex; }
+  .chat-msg { max-width: 85%; }
+  .chat-form .btn span { display: none; }
+  /* No celular o "?" cobriria o botao Enviar */
+  body[data-nav="mensagens"] .help-btn { display: none; }
+}
+
+/* ─────────────────────────────────────────────
+   RECUPERACAO DE SENHA (login e redefinir-senha.html)
+───────────────────────────────────────────── */
+.link-btn {
+  display: block;
+  margin: 12px auto 0;
+  padding: 4px 6px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--blue);
+  cursor: pointer;
+}
+.link-btn:hover { text-decoration: underline; }
+.link-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 4px; }
+
+.auth-texto { font-size: 0.875rem; line-height: 1.55; margin-bottom: 14px; }
+.auth-form-espacado .field + .field,
+.auth-form-espacado .field + .btn { margin-top: 14px; }

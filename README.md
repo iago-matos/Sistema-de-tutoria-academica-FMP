@@ -9,6 +9,7 @@ tutores, com frontend estatico em HTML/CSS/JavaScript.
 TutoriaFMP-main/
 ├── .github/workflows/    CI: build e testes a cada push e Pull Request
 ├── .vscode/              Configuracao do VS Code (JDK, launch, task Maven)
+├── docs/                 Diagrama de classes (Mermaid)
 ├── docker-compose.yml    SQL Server para desenvolvimento local (opcional)
 ├── backend/              Projeto Maven — API REST
 │   ├── pom.xml
@@ -118,6 +119,11 @@ que em desenvolvimento ficam no arquivo `backend/.env` (ignorado pelo Git).
      virgula (padrao `fmpsc.edu.br,aluno.fmpsc.edu.br`)
    - `CADASTRO_COM_SENHA`: `true` reativa o cadastro com e-mail e senha. Use so em
      desenvolvimento; o padrao e `false`
+   - `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM`
+     (opcionais): servidor SMTP do "Esqueci minha senha". Com Gmail, use uma
+     *senha de app*. Vazio: a tela de login orienta a pedir o link a coordenacao
+   - `FRONTEND_URL` (opcional): endereco do frontend usado no link do e-mail
+     (padrao: o GitHub Pages do projeto)
 
 ### Login com Google
 
@@ -241,6 +247,30 @@ seguintes sao normais. O limite e de 60 minutos de CPU por dia.
 4. O cadastro com e-mail e senha fica desligado (`CADASTRO_COM_SENHA=false`).
    Contas antigas, como as dos administradores, continuam entrando com senha.
 5. So contas **ATIVAS** conseguem fazer login.
+6. **Recuperacao de senha (RF02)**, para quem entra com e-mail e senha:
+   - **Esqueci minha senha**, na tela de login: o link chega por e-mail (exige
+     `MAIL_HOST`). A resposta e a mesma para e-mail cadastrado ou nao;
+   - **Link de senha**, na tela **Usuarios** da coordenacao: gera o link para
+     entregar a pessoa, sem depender de servidor de e-mail.
+
+   O link (`redefinir-senha.html?token=...`) vale por 30 minutos e funciona uma
+   unica vez. O token nao fica no banco: e assinado com uma chave derivada do
+   `JWT_SECRET` (nao serve como token de acesso) e carrega uma impressao da senha
+   atual, que deixa de bater quando a senha muda.
+
+## Mensagens, notificacoes e ajuda
+
+- **Chat:** guia **Mensagens** do estudante e do tutor. Uma conversa por dupla
+  tutor-estudante (`Conversa` e `Mensagem` no [diagrama de classes](docs/diagrama-de-classes.md)).
+  O estudante inicia conversa com qualquer tutor ativo; o tutor, com estudantes
+  que ja solicitaram tutoria com ele. So a dupla le a conversa (nem o admin).
+  Conta inativada deixa a conversa somente leitura. As mensagens novas chegam por
+  consulta a cada 5 segundos, so com a aba visivel.
+- **Notificacoes:** o sino do menu mostra avisos calculados na hora a partir do
+  estado atual (mensagens nao lidas, solicitacoes pendentes, tutorias de hoje e
+  amanha, tutorias a avaliar, cadastros e pedidos de disciplina pendentes). Nada
+  e gravado: o aviso some quando a pendencia e resolvida.
+- **Ajuda:** o botao **?** abre o manual (`frontend/ajuda.html`) na secao do perfil.
 
 ## Permissoes
 
@@ -280,8 +310,12 @@ Cadastrar um coordenador **nao** concede o perfil de administrador.
 
 ## Autenticacao
 
-- `GET /login/config` — rota publica com `googleClientId`, `dominioInstitucional`
-  e `cadastroComSenha`, usada pela tela de login
+- `GET /login/config` — rota publica com `googleClientId`, `dominiosInstitucionais`,
+  `cadastroComSenha` e `recuperacaoSenhaPorEmail`, usada pela tela de login
+- `POST /login/esqueci-senha` (`{ "email" }`, **202**) e
+  `POST /login/redefinir-senha` (`{ "token", "novaSenha" }`, **204**) — rotas
+  publicas da recuperacao de senha; `POST /usuario/{id}/redefinicao-senha`
+  (admin) gera o token para a coordenacao entregar
 - `POST /login/google` — recebe `{ "credential": "<ID token do Google>" }`.
   Respostas pelo campo `situacao`:
   - `AUTENTICADO` (200): token JWT no header `Authorization`;
@@ -306,6 +340,11 @@ Cadastrar um coordenador **nao** concede o perfil de administrador.
   `PUT /disciplina/pedidos/{id}/aprovar|recusar` (admin)
 - Disciplinas do tutor logado: `GET` e `POST /tutor/me/disciplinas`
   (`{ "disciplinaId" }`), `DELETE /tutor/me/disciplinas/{id}`
+- Chat: `GET /conversa`, `POST /conversa` (`{ "tutorId" }` ou `{ "estudanteId" }`;
+  devolve a conversa existente da dupla), `GET /conversa/{id}`,
+  `GET /conversa/{id}/mensagens?aposId=` (marca as recebidas como lidas),
+  `POST /conversa/{id}/mensagens` (`{ "conteudo" }`), `GET /conversa/nao-lidas`
+- Notificacoes do usuario logado: `GET /notificacao`
 - Solicitar tutoria: `PUT /agendamento/{id}/solicitar` com
   `{ "modalidade", "disciplinaId" }`. A disciplina e obrigatoria quando o tutor
   atende mais de uma.

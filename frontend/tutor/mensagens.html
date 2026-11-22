@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mensagens | Tutoria Acadêmica</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <script src="../javascript/api.js"></script>
+    <script src="../javascript/auth.js"></script>
+    <script src="../javascript/layout.js"></script>
+    <script src="../javascript/utils.js"></script>
+    <script src="../javascript/chat.js"></script>
+    <script defer src="../javascript/dashboard.js"></script>
+</head>
+<body data-page="tutor-mensagens" data-role="tutor" data-nav="mensagens">
+    <div class="app-shell">
+        <aside class="sidebar" id="sidebar"></aside>
+        <main class="main-panel">
+            <header class="page-header" id="pageHeader"></header>
+            <div id="loading" class="loading-state">Carregando conversas...</div>
+            <div id="chatFeedback" style="display:none;margin-bottom:12px;"></div>
+
+            <div class="chat-layout" id="chatLayout">
+                <section class="chat-lista" aria-label="Conversas">
+                    <div class="chat-lista-titulo">Conversas</div>
+                    <div id="chatLista" class="chat-lista-itens"></div>
+                </section>
+
+                <section class="chat-painel" aria-live="polite">
+                    <div id="chatVazio" class="chat-vazio">
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        <p>Selecione uma conversa para ver as mensagens.</p>
+                    </div>
+
+                    <div id="chatConversa" class="chat-conversa" hidden>
+                        <header class="chat-cabecalho">
+                            <button class="btn ghost sm chat-voltar" type="button" id="chatVoltar" aria-label="Voltar para as conversas">←</button>
+                            <span class="avatar purple" id="chatAvatar"></span>
+                            <div>
+                                <strong id="chatNome"></strong>
+                                <span class="chat-papel" id="chatPapel"></span>
+                            </div>
+                        </header>
+
+                        <div class="chat-mensagens" id="chatMensagens" role="log" aria-label="Mensagens"></div>
+
+                        <p class="chat-encerrada" id="chatEncerrada" hidden></p>
+                        <form class="chat-form" id="chatForm" autocomplete="off">
+                            <label class="sr-only" for="chatTexto">Escreva uma mensagem</label>
+                            <textarea id="chatTexto" rows="1" maxlength="2000" placeholder="Escreva uma mensagem..." title="Enter envia; Shift+Enter quebra a linha"></textarea>
+                            <button class="btn" type="submit" id="chatEnviar" aria-label="Enviar">
+                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                                <span>Enviar</span>
+                            </button>
+                            <span class="chat-contador" id="chatContador" hidden></span>
+                        </form>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

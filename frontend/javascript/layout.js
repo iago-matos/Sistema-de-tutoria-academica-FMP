@@ -11,6 +11,8 @@ const ICONS = {
     x:        '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
     settings: '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
     plus:     '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+    chat:     '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+    send:     '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
     lock:     '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'
 };
 
@@ -18,6 +20,7 @@ const NAV_MENUS = {
     tutor: [
         { id: "inicio", label: "Início", href: "dashboard.html", icon: "home" },
         { id: "solicitacoes", label: "Solicitações", href: "solicitacoes.html", icon: "users" },
+        { id: "mensagens", label: "Mensagens", href: "mensagens.html", icon: "chat" },
         { id: "agenda", label: "Agenda", href: "agenda.html", icon: "calendar" },
         { id: "disciplinas", label: "Disciplinas", href: "disciplinas.html", icon: "book" },
         { id: "avaliacoes", label: "Avaliações", href: "avaliacoes.html", icon: "star" }
@@ -26,6 +29,7 @@ const NAV_MENUS = {
         { id: "inicio", label: "Início", href: "dashboard.html", icon: "home" },
         { id: "tutores", label: "Tutores", href: "buscar-tutores.html", icon: "users" },
         { id: "solicitacoes", label: "Solicitações", href: "meus-agendamentos.html", icon: "calendar" },
+        { id: "mensagens", label: "Mensagens", href: "mensagens.html", icon: "chat" },
         { id: "avaliacoes", label: "Avaliações", href: "avaliacoes.html", icon: "star" }
     ],
     admin: [
@@ -54,7 +58,10 @@ function formatLongDate(date) {
     return formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }
 
-function renderSidebar(role, activeNav, notifCount) {
+// Secao do manual (ajuda.html) de cada perfil
+const AJUDA_ANCORA = { estudante: "estudante", tutor: "tutor", admin: "coordenacao" };
+
+function renderSidebar(role, activeNav) {
     const sidebar = document.getElementById("sidebar");
     if (!sidebar) return;
 
@@ -63,12 +70,10 @@ function renderSidebar(role, activeNav, notifCount) {
         const activeClass = item.id === activeNav ? " active" : "";
         return '<li><a class="nav-link' + activeClass + '" href="' + item.href + '">'
             + icon(item.icon)
-            + "<span>" + item.label + "</span></a></li>";
+            + "<span>" + item.label + "</span>"
+            + '<span class="notif-badge" data-badge="' + item.id + '" hidden></span>'
+            + "</a></li>";
     }).join("");
-
-    const badge = notifCount > 0
-        ? '<span class="notif-badge">' + notifCount + "</span>"
-        : "";
 
     sidebar.innerHTML = '<div class="brand">'
         + '<div class="brand-mark">' + icon("book") + "</div>"
@@ -76,20 +81,24 @@ function renderSidebar(role, activeNav, notifCount) {
         + "</div>"
         + '<nav aria-label="Menu principal"><ul class="nav-list">' + navItems + "</ul></nav>"
         + '<div class="sidebar-footer">'
-        + '<a class="nav-link" href="#" data-action="notifications">' + icon("bell")
-        + "<span>Notificações</span>" + badge + "</a>"
+        + '<button class="nav-link" type="button" data-action="notifications" aria-haspopup="dialog" aria-expanded="false">'
+        + icon("bell") + "<span>Notificações</span>"
+        + '<span class="notif-badge" id="notifBadge" hidden></span></button>'
         + '<button class="nav-link" type="button" data-action="alterar-senha">'
         + icon("lock") + "<span>Alterar senha</span></button>"
         + '<button class="nav-link" type="button" data-action="logout">'
         + icon("logout") + "<span>Sair</span></button>"
         + "</div>";
 
-    // inject help button once
+    // Botao "?" (canto da tela): abre o manual na secao do perfil
     if (!document.querySelector(".help-btn")) {
-        const helpBtn = document.createElement("button");
+        const helpBtn = document.createElement("a");
         helpBtn.className = "help-btn";
-        helpBtn.type = "button";
-        helpBtn.title = "Ajuda";
+        helpBtn.href = "../ajuda.html#" + (AJUDA_ANCORA[role] || "inicio");
+        helpBtn.target = "_blank";
+        helpBtn.rel = "noopener";
+        helpBtn.title = "Ajuda: manual do sistema";
+        helpBtn.setAttribute("aria-label", "Ajuda: abrir o manual do sistema");
         helpBtn.textContent = "?";
         document.body.appendChild(helpBtn);
     }
@@ -132,9 +141,8 @@ function renderPageHeader(options) {
 function initAppShell(options) {
     const role = document.body.dataset.role;
     const activeNav = document.body.dataset.nav;
-    const notifCount = options && options.notifCount ? options.notifCount : 0;
 
-    renderSidebar(role, activeNav, notifCount);
+    renderSidebar(role, activeNav);
     renderPageHeader(options && options.header ? options.header : { mode: "greeting" });
     bindLogoutButtons();
 
@@ -146,8 +154,90 @@ function initAppShell(options) {
     const notifBtn = document.querySelector("[data-action='notifications']");
     if (notifBtn) {
         notifBtn.addEventListener("click", function (event) {
-            event.preventDefault();
+            event.stopPropagation();
+            alternarPainelNotificacoes(notifBtn);
         });
+    }
+    atualizarNotificacoes();
+}
+
+// ── Notificacoes (sino) ─────────────────────────────────────────────────────
+// Os avisos vem do backend (GET /notificacao), calculados a partir do estado
+// atual: somem sozinhos quando a pendencia e resolvida.
+let notificacoesAtuais = [];
+
+async function atualizarNotificacoes() {
+    try {
+        notificacoesAtuais = await fetchNotificacoes() || [];
+    } catch (_) {
+        return; // sem notificacoes, a pagina continua funcionando
+    }
+
+    const total = notificacoesAtuais.reduce(function (soma, n) { return soma + (n.quantidade || 0); }, 0);
+    definirBadge(document.getElementById("notifBadge"), total);
+
+    const mensagens = notificacoesAtuais
+        .filter(function (n) { return n.tipo === "MENSAGEM"; })
+        .reduce(function (soma, n) { return soma + n.quantidade; }, 0);
+    definirBadge(document.querySelector("[data-badge='mensagens']"), mensagens);
+
+    const painel = document.getElementById("notifPanel");
+    if (painel && painel.classList.contains("open")) {
+        preencherPainelNotificacoes(painel);
+    }
+}
+
+function definirBadge(elemento, quantidade) {
+    if (!elemento) return;
+    elemento.hidden = !quantidade;
+    elemento.textContent = quantidade > 99 ? "99+" : String(quantidade || "");
+}
+
+function preencherPainelNotificacoes(painel) {
+    const lista = painel.querySelector(".notif-list");
+    if (!notificacoesAtuais.length) {
+        lista.innerHTML = '<div class="notif-empty">' + icon("check") + "<p>Tudo em dia! Nenhuma notificação.</p></div>";
+        return;
+    }
+    lista.innerHTML = notificacoesAtuais.map(function (n) {
+        return '<a class="notif-item notif-' + escapeHTML(String(n.tipo).toLowerCase()) + '" href="' + escapeHTML(n.link) + '">'
+            + '<span class="notif-dot" aria-hidden="true"></span>'
+            + '<span class="notif-text"><strong>' + escapeHTML(n.titulo) + "</strong>"
+            + "<span>" + escapeHTML(n.descricao) + "</span></span></a>";
+    }).join("");
+}
+
+function alternarPainelNotificacoes(botao) {
+    let painel = document.getElementById("notifPanel");
+    if (!painel) {
+        painel = document.createElement("div");
+        painel.id = "notifPanel";
+        painel.className = "notif-panel";
+        painel.setAttribute("role", "dialog");
+        painel.setAttribute("aria-label", "Notificações");
+        painel.innerHTML = '<div class="notif-header"><strong>Notificações</strong>'
+            + '<button class="modal-close" type="button" aria-label="Fechar">' + icon("x") + "</button></div>"
+            + '<div class="notif-list"></div>';
+        document.body.appendChild(painel);
+
+        const fechar = function () {
+            painel.classList.remove("open");
+            botao.setAttribute("aria-expanded", "false");
+        };
+        painel.querySelector(".modal-close").addEventListener("click", fechar);
+        painel.addEventListener("click", function (event) { event.stopPropagation(); });
+        document.addEventListener("click", fechar);
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") fechar();
+        });
+    }
+
+    const abrir = !painel.classList.contains("open");
+    painel.classList.toggle("open", abrir);
+    botao.setAttribute("aria-expanded", String(abrir));
+    if (abrir) {
+        preencherPainelNotificacoes(painel);
+        atualizarNotificacoes();
     }
 }
 

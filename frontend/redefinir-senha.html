@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <title>Redefinir senha | Tutoria Acadêmica</title>
+    <link rel="stylesheet" href="css/global.css">
+    <script src="javascript/api.js"></script>
+</head>
+<body class="auth-page">
+    <div class="auth-card">
+        <div class="auth-brand">
+            <div class="brand-mark">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;color:#fff;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </div>
+            <strong>Tutoria Acadêmica</strong>
+        </div>
+
+        <div id="redefinirArea">
+            <h2>Criar nova senha</h2>
+            <p class="muted auth-texto">A nova senha precisa ter no mínimo 8 caracteres. Depois de salvar, este link deixa de funcionar.</p>
+            <form id="redefinirForm" class="auth-form-espacado">
+                <div class="field">
+                    <label for="novaSenha">Nova senha</label>
+                    <input type="password" id="novaSenha" required minlength="8" maxlength="72" autocomplete="new-password">
+                </div>
+                <div class="field">
+                    <label for="confirmarSenha">Confirme a nova senha</label>
+                    <input type="password" id="confirmarSenha" required minlength="8" maxlength="72" autocomplete="new-password">
+                </div>
+                <button class="btn" type="submit" id="redefinirSalvar">Salvar nova senha</button>
+            </form>
+        </div>
+
+        <div id="feedback" style="display:none;margin-top:12px;"></div>
+        <p class="auth-footer"><a href="login.html">Voltar para o login</a></p>
+    </div>
+
+    <script>
+        // O token chega na URL (?token=...). Ele e lido uma vez e retirado do
+        // endereco, para nao ficar no historico do navegador.
+        const token = new URLSearchParams(window.location.search).get("token");
+        history.replaceState(null, "", "redefinir-senha.html");
+
+        function mostrar(texto, classe) {
+            const feedback = document.getElementById("feedback");
+            feedback.textContent = texto;
+            feedback.className = classe;
+            feedback.style.display = "block";
+        }
+
+        if (!token) {
+            document.getElementById("redefinirArea").style.display = "none";
+            mostrar("Link incompleto. Abra o link exatamente como recebeu ou peça um novo.", "error-state");
+        }
+
+        document.getElementById("redefinirForm").addEventListener("submit", async function (event) {
+            event.preventDefault();
+            const novaSenha = document.getElementById("novaSenha").value;
+            if (novaSenha !== document.getElementById("confirmarSenha").value) {
+                mostrar("A confirmação não confere com a nova senha.", "error-state");
+                return;
+            }
+
+            const botao = document.getElementById("redefinirSalvar");
+            botao.disabled = true;
+            try {
+                await redefinirSenhaRequest(token, novaSenha);
+                document.getElementById("redefinirArea").style.display = "none";
+                mostrar("Senha alterada! Você já pode entrar com a nova senha.", "loading-state");
+            } catch (error) {
+                mostrar(error.message, "error-state");
+                botao.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

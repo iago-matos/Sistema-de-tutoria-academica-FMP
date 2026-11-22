@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajuda | Tutoria Acadêmica</title>
+    <link rel="stylesheet" href="css/global.css">
+    <style>
+        body { background: var(--surface); }
+        .manual { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
+        .manual-topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
+        .manual-marca { display: flex; align-items: center; gap: 10px; color: var(--dark); font-weight: 700; }
+        .manual-marca .brand-mark svg { width: 18px; height: 18px; }
+        .manual h1 { font-size: 1.75rem; letter-spacing: -0.02em; color: var(--dark); margin-bottom: 6px; }
+        .manual-intro { color: var(--muted); margin-bottom: 20px; }
+        .manual-indice { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+        .manual-indice a { padding: 7px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); font-size: 0.875rem; font-weight: 600; color: var(--dark); }
+        .manual-indice a:hover { border-color: var(--blue); color: var(--blue); }
+        .manual section { background: var(--white); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 24px clamp(18px, 4vw, 32px); margin-bottom: 20px; scroll-margin-top: 16px; }
+        .manual section:target { border-color: var(--blue); box-shadow: 0 0 0 3px rgb(20 136 202 / 0.12); }
+        .manual h2 { font-size: 1.25rem; color: var(--dark); letter-spacing: -0.01em; margin-bottom: 4px; }
+        .manual h3 { font-size: 1rem; color: var(--dark); margin: 22px 0 6px; }
+        .manual p, .manual li { line-height: 1.65; }
+        .manual ol, .manual ul { padding-left: 22px; }
+        .manual li + li { margin-top: 4px; }
+        .manual .secao-sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 8px; }
+        .manual kbd, .manual .ui { display: inline-block; padding: 0 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); font: inherit; font-size: 0.85em; font-weight: 600; color: var(--dark); }
+        .manual .dica { margin-top: 14px; padding: 12px 14px; border-left: 4px solid var(--blue); background: #eff6ff; border-radius: 6px; font-size: 0.9rem; }
+        .manual table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.9rem; }
+        .manual th, .manual td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+        .manual th { color: var(--muted); font-weight: 600; font-size: 0.8125rem; }
+        .manual details { border-top: 1px solid var(--line-soft); padding: 12px 0; }
+        .manual details:first-of-type { border-top: none; }
+        .manual summary { cursor: pointer; font-weight: 600; color: var(--dark); }
+        .manual details p { margin-top: 8px; color: var(--body); }
+        .manual footer { text-align: center; color: var(--muted); font-size: 0.875rem; margin-top: 28px; }
+        .manual footer a { color: var(--blue); }
+    </style>
+</head>
+<body>
+<main class="manual">
+    <div class="manual-topo">
+        <div class="manual-marca">
+            <div class="brand-mark">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </div>
+            Tutoria Acadêmica
+        </div>
+        <a class="btn secondary sm" href="index.html">Ir para o sistema</a>
+    </div>
+
+    <h1>Manual do sistema</h1>
+    <p class="manual-intro">Como usar a Tutoria Acadêmica, por perfil. Clique no seu perfil para ir direto às instruções.</p>
+
+    <nav class="manual-indice" aria-label="Seções do manual">
+        <a href="#inicio">Primeiro acesso</a>
+        <a href="#estudante">Estudante</a>
+        <a href="#tutor">Tutor</a>
+        <a href="#coordenacao">Coordenação</a>
+        <a href="#comum">Mensagens e notificações</a>
+        <a href="#duvidas">Dúvidas frequentes</a>
+    </nav>
+
+    <section id="inicio">
+        <h2>Primeiro acesso</h2>
+        <p class="secao-sub">Entrada com a conta Google da instituição.</p>
+        <ol>
+            <li>Na tela de login, clique em <span class="ui">Fazer login com o Google</span> e escolha a sua conta <strong>@fmpsc.edu.br</strong> ou <strong>@aluno.fmpsc.edu.br</strong>. Contas de outros domínios não são aceitas.</li>
+            <li>No primeiro acesso, escolha o perfil em <span class="ui">Eu sou</span>:
+                <ul>
+                    <li><strong>Estudante</strong>: a conta é liberada na hora.</li>
+                    <li><strong>Tutor</strong>: escolha a disciplina em que vai atender. O cadastro fica aguardando a aprovação da coordenação; você consegue entrar depois de aprovado.</li>
+                </ul>
+            </li>
+            <li>Nos próximos acessos, basta clicar no botão do Google novamente.</li>
+        </ol>
+        <p class="dica">Estudantes e tutores não precisam de senha. O login com e-mail e senha é usado pela coordenação.</p>
+    </section>
+
+    <section id="estudante">
+        <h2>Estudante</h2>
+        <p class="secao-sub">Encontrar um tutor, solicitar uma tutoria e avaliar depois.</p>
+
+        <h3>Encontrar um tutor e solicitar um horário</h3>
+        <ol>
+            <li>Abra a guia <span class="ui">Tutores</span>. Aparecem as disciplinas com tutores ativos.</li>
+            <li>Clique na disciplina. Uma janela mostra os tutores, a média das avaliações e os horários livres (cada sessão dura 1 hora).</li>
+            <li>No horário desejado, clique em <span class="ui">Solicitar</span>. Se o tutor deixou um link de videoconferência, você escolhe entre <strong>presencial</strong> (na instituição) e <strong>online</strong>.</li>
+            <li>A solicitação fica <strong>Aguardando aprovação</strong> até o tutor confirmar.</li>
+        </ol>
+
+        <h3>Acompanhar as solicitações</h3>
+        <p>Na guia <span class="ui">Solicitações</span> ficam todas as suas tutorias:</p>
+        <table>
+            <thead><tr><th>Situação</th><th>O que significa</th></tr></thead>
+            <tbody>
+                <tr><td>Aguardando aprovação</td><td>O tutor ainda não respondeu.</td></tr>
+                <tr><td>Confirmada</td><td>O tutor confirmou. Nas tutorias online, o botão <span class="ui">Entrar na reunião</span> aparece aqui.</td></tr>
+                <tr><td>Realizada</td><td>A tutoria aconteceu. Já pode ser avaliada.</td></tr>
+                <tr><td>Cancelada</td><td>O tutor recusou ou cancelou a sessão.</td></tr>
+            </tbody>
+        </table>
+        <p style="margin-top:10px;">Para desistir, use <span class="ui">Cancelar agendamento</span>. O cancelamento só pode ser feito <strong>até o dia anterior</strong> à tutoria, e o horário volta a ficar livre para outros estudantes.</p>
+
+        <h3>Avaliar uma tutoria</h3>
+        <ol>
+            <li>Depois que a tutoria acontece, abra a guia <span class="ui">Avaliações</span>.</li>
+            <li>Escolha o tutor e a tutoria, dê uma nota de 1 a 5 estrelas e, se quiser, escreva um comentário.</li>
+            <li>Cada tutoria pode ser avaliada uma única vez. As avaliações ajudam outros estudantes a escolher.</li>
+        </ol>
+
+        <h3>Conversar com um tutor</h3>
+        <p>No popup da disciplina (guia <span class="ui">Tutores</span>) ou nos cards das suas solicitações, clique em <span class="ui">Conversar</span> ou <span class="ui">Mensagem</span>. Veja como funciona em <a href="#comum">Mensagens e notificações</a>.</p>
+    </section>
+
+    <section id="tutor">
+        <h2>Tutor</h2>
+        <p class="secao-sub">Abrir horários, responder solicitações e acompanhar avaliações.</p>
+
+        <h3>Abrir horários na agenda</h3>
+        <ol>
+            <li>Na guia <span class="ui">Agenda</span>, clique em um horário vazio. Cada sessão tem 1 hora.</li>
+            <li>Se quiser atender online, cole o link da videoconferência (Meet, Teams...). Sem link, a tutoria é só presencial.</li>
+            <li>Escreva observações, se precisar (ex.: "revisão para a prova"). O horário fica <strong>Livre</strong> para os estudantes.</li>
+        </ol>
+        <p>Seus horários livres aparecem em todas as suas disciplinas ativas; o estudante escolhe a disciplina ao solicitar.</p>
+
+        <h3>Responder solicitações</h3>
+        <p>Na guia <span class="ui">Solicitações</span>, clique em <span class="ui">Confirmar</span> ou no <span class="ui">✕</span> para recusar. O estudante vê a resposta na hora. Pelo botão <span class="ui">Mensagem</span> você fala com o estudante antes de decidir.</p>
+
+        <h3>Detalhes de uma sessão</h3>
+        <p>Clique em uma sessão na agenda para ver o estudante, a disciplina, a modalidade e o link. Ali você pode:</p>
+        <ul>
+            <li><span class="ui">Cancelar sessão</span>: o estudante vê a sessão como cancelada.</li>
+            <li><span class="ui">Marcar como realizada</span>: depois do horário da tutoria.</li>
+            <li>Editar o link da videoconferência e enviar <span class="ui">Mensagem</span> ao estudante.</li>
+        </ul>
+
+        <h3>Disciplinas</h3>
+        <p>Na guia <span class="ui">Disciplinas</span>, peça para atender outras disciplinas da lista. O pedido vale depois que a coordenação aprovar. Você pode remover uma disciplina, mas precisa manter pelo menos uma ativa.</p>
+
+        <h3>Avaliações recebidas</h3>
+        <p>A guia <span class="ui">Avaliações</span> mostra as notas e os comentários dos estudantes.</p>
+    </section>
+
+    <section id="coordenacao">
+        <h2>Coordenação</h2>
+        <p class="secao-sub">Aprovar tutores, manter as disciplinas e gerenciar as contas.</p>
+
+        <h3>Aprovações</h3>
+        <p>Na guia <span class="ui">Aprovações</span> ficam os <strong>cadastros</strong> de novos tutores (com a disciplina escolhida) e os <strong>pedidos de disciplina</strong> dos tutores já ativos. Aprove ou recuse cada um.</p>
+
+        <h3>Disciplinas</h3>
+        <p>Crie, renomeie ou exclua disciplinas da lista em que os tutores escolhem onde atender. Só é possível excluir uma disciplina que nenhuma tutoria usou.</p>
+
+        <h3>Avaliações</h3>
+        <p>Consulte as avaliações agrupadas por tutor, com a média e os comentários.</p>
+
+        <h3>Usuários</h3>
+        <ul>
+            <li><span class="ui">Editar</span>: corrige o nome.</li>
+            <li><span class="ui">Inativar</span>: a conta deixa de entrar. Os horários futuros do tutor são cancelados; as reservas futuras do estudante voltam a ficar livres. O histórico (sessões, avaliações e mensagens) fica guardado.</li>
+            <li><span class="ui">Reativar</span>: a conta volta a entrar. Sessões canceladas não voltam.</li>
+            <li><span class="ui">Apagar dados</span> (LGPD): só a pedido da própria pessoa, feito na secretaria, e só com a conta inativa. Nome e e-mail são apagados de forma definitiva; o histórico passa a aparecer como "Usuário removido".</li>
+            <li><span class="ui">Link de senha</span>: gera um link para a pessoa criar uma nova senha (veja <a href="#duvidas">Esqueci minha senha</a>).</li>
+        </ul>
+    </section>
+
+    <section id="comum">
+        <h2>Mensagens e notificações</h2>
+        <p class="secao-sub">Para estudantes e tutores (a coordenação recebe só as notificações).</p>
+
+        <h3>Mensagens (chat)</h3>
+        <ul>
+            <li>Cada dupla tutor–estudante tem <strong>uma conversa</strong>, com todo o histórico, independente de quantas tutorias marcarem.</li>
+            <li>O estudante pode iniciar conversa com qualquer tutor ativo. O tutor inicia conversa com estudantes que já solicitaram tutoria com ele.</li>
+            <li>Na guia <span class="ui">Mensagens</span>, escolha a conversa à esquerda. <kbd>Enter</kbd> envia; <kbd>Shift</kbd> + <kbd>Enter</kbd> quebra a linha. Cada mensagem tem até 2.000 caracteres.</li>
+            <li>Mensagens novas aparecem sozinhas em poucos segundos, e o número de não lidas aparece ao lado de <span class="ui">Mensagens</span> no menu.</li>
+            <li>Só a dupla lê a conversa; nem a coordenação tem acesso.</li>
+            <li>Se uma das contas for inativada, a conversa fica <strong>encerrada</strong>: o histórico continua visível, mas não é possível enviar mensagens.</li>
+        </ul>
+
+        <h3>Notificações</h3>
+        <p>O sino <span class="ui">Notificações</span>, no menu, mostra o que precisa da sua atenção. Cada aviso leva à tela certa e some sozinho quando a pendência é resolvida.</p>
+        <table>
+            <thead><tr><th>Perfil</th><th>Avisos</th></tr></thead>
+            <tbody>
+                <tr><td>Estudante</td><td>Mensagens não lidas, tutorias confirmadas de hoje e amanhã, tutorias que já aconteceram e ainda não foram avaliadas.</td></tr>
+                <tr><td>Tutor</td><td>Mensagens não lidas, solicitações aguardando resposta, tutorias confirmadas de hoje e amanhã.</td></tr>
+                <tr><td>Coordenação</td><td>Cadastros de tutores e pedidos de disciplina aguardando aprovação.</td></tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section id="duvidas">
+        <h2>Dúvidas frequentes</h2>
+
+        <details>
+            <summary>Esqueci minha senha. O que faço?</summary>
+            <p>Se você entra com o Google, não há senha: use o botão do Google. Se você entra com e-mail e senha, clique em <span class="ui">Esqueci minha senha</span> na tela de login. Quando o envio por e-mail estiver ativo, o link chega no seu e-mail; caso contrário, peça à coordenação, que gera o link na tela <span class="ui">Usuários</span>. O link vale por 30 minutos e funciona uma única vez.</p>
+        </details>
+        <details>
+            <summary>Como troco minha senha?</summary>
+            <p>Logado, clique em <span class="ui">Alterar senha</span> no menu, informe a senha atual e a nova (mínimo de 8 caracteres).</p>
+        </details>
+        <details>
+            <summary>Meu cadastro de tutor ainda não foi liberado.</summary>
+            <p>O cadastro de tutor precisa ser aprovado pela coordenação. Ao tentar entrar antes disso, o sistema avisa que o cadastro está aguardando aprovação.</p>
+        </details>
+        <details>
+            <summary>Não consigo cancelar uma tutoria.</summary>
+            <p>O estudante só cancela até o dia anterior à tutoria. No próprio dia, avise o tutor pelo chat.</p>
+        </details>
+        <details>
+            <summary>Onde está o link da reunião online?</summary>
+            <p>O link aparece para o estudante em <span class="ui">Solicitações</span> depois que o tutor confirma a tutoria online.</p>
+        </details>
+        <details>
+            <summary>Quem vê os meus dados?</summary>
+            <p>Veja a <a href="privacidade.html">Política de Privacidade</a>.</p>
+        </details>
+    </section>
+
+    <footer>
+        Projeto técnico de encerramento do curso de Análise e Desenvolvimento de Sistemas.
+        · <a href="privacidade.html">Política de Privacidade</a>
+    </footer>
+</main>
+</body>
+</html>

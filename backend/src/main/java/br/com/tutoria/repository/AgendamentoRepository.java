@@ -118,6 +118,9 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
     // A coordenacao so exclui uma disciplina que nenhuma tutoria registrou
     boolean existsByDisciplina_Id(Long disciplinaId);
 
+    // O tutor so abre conversa com estudante que ja solicitou tutoria com ele
+    boolean existsByTutor_IdAndEstudante_Id(Long tutorId, Long estudanteId);
+
     // Usadas na inativacao de um tutor ou estudante (InativacaoDeContaService)
     List<Agendamento> findByTutor_Id(Long tutorId);
 

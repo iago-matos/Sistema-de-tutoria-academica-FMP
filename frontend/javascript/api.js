@@ -369,3 +369,74 @@ async function reativarUsuario(usuarioId) {
 async function anonimizarUsuario(usuarioId) {
     return putJSON("/usuario/" + usuarioId + "/anonimizar", {});
 }
+
+// ── Chat entre tutor e estudante ──────────────────────────────────────────
+
+async function fetchConversas() {
+    return requestJSON("/conversa");
+}
+
+async function fetchConversa(conversaId) {
+    return requestJSON("/conversa/" + conversaId);
+}
+
+// O estudante informa o tutor; o tutor informa o estudante. Se a dupla ja
+// tem conversa, o backend devolve a mesma.
+async function iniciarConversa(dados) {
+    return postJSON("/conversa", dados);
+}
+
+// aposId: so as mensagens mais novas que essa (consulta periodica)
+async function fetchMensagens(conversaId, aposId) {
+    return requestJSON("/conversa/" + conversaId + "/mensagens" + (aposId ? "?aposId=" + aposId : ""));
+}
+
+async function enviarMensagem(conversaId, conteudo) {
+    return postJSON("/conversa/" + conversaId + "/mensagens", { conteudo: conteudo });
+}
+
+// ── Notificacoes (sino) ───────────────────────────────────────────────────
+
+async function fetchNotificacoes() {
+    return requestJSON("/notificacao");
+}
+
+// ── Recuperacao de senha (RF02) ───────────────────────────────────────────
+
+async function esqueciSenhaRequest(email) {
+    let response;
+    try {
+        response = await fetch(API_BASE + "/login/esqueci-senha", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email })
+        });
+    } catch (networkErr) {
+        throw new Error("Sem conexão com o servidor. Tente novamente em instantes.");
+    }
+    if (!response.ok) {
+        throw new Error(await readErrorMessage(response) || "Não foi possível enviar o pedido");
+    }
+    return response.json();
+}
+
+async function redefinirSenhaRequest(token, novaSenha) {
+    let response;
+    try {
+        response = await fetch(API_BASE + "/login/redefinir-senha", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: token, novaSenha: novaSenha })
+        });
+    } catch (networkErr) {
+        throw new Error("Sem conexão com o servidor. Tente novamente em instantes.");
+    }
+    if (!response.ok) {
+        throw new Error(await readErrorMessage(response) || "Não foi possível redefinir a senha");
+    }
+}
+
+// Coordenacao: gera o link de redefinicao para entregar a pessoa
+async function gerarLinkRedefinicaoSenha(usuarioId) {
+    return postJSON("/usuario/" + usuarioId + "/redefinicao-senha", {});
+}

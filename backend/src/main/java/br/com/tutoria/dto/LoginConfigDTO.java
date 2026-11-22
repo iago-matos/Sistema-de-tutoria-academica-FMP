@@ -8,5 +8,7 @@ public record LoginConfigDTO(
         // Vazio quando o login com Google nao esta configurado
         String googleClientId,
         List<String> dominiosInstitucionais,
-        boolean cadastroComSenha) {
+        boolean cadastroComSenha,
+        // true quando ha servidor de e-mail: a tela oferece "Esqueci minha senha" por e-mail
+        boolean recuperacaoSenhaPorEmail) {
 }

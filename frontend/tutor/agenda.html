@@ -389,7 +389,10 @@ function openDetalhe(id) {
     document.getElementById('detalheLista').innerHTML =
         '<dt>Horário</dt><dd>' + escapeHTML(hhmm(s.hora) + ' – ' + hhmm(s.horaFim)) + ' (1 hora)</dd>'
         + '<dt>Situação</dt><dd>' + statusBadge(s.status) + ' ' + escapeHTML(STATUS_LABEL[s.status] || '') + '</dd>'
-        + '<dt>Estudante</dt><dd>' + escapeHTML(estudante) + '</dd>'
+        + '<dt>Estudante</dt><dd>' + escapeHTML(estudante)
+            + (s.estudante && s.estudante.id
+                ? ' <a class="btn secondary sm" href="mensagens.html?estudanteId=' + encodeURIComponent(s.estudante.id) + '">' + icon('chat') + ' Mensagem</a>'
+                : '') + '</dd>'
         + '<dt>Disciplina</dt><dd>' + escapeHTML(s.disciplina ? s.disciplina.nome
             : (s.estudante ? '--' : 'O estudante escolhe entre as suas disciplinas')) + '</dd>'
         + '<dt>Modalidade</dt><dd>' + escapeHTML(s.modalidade
