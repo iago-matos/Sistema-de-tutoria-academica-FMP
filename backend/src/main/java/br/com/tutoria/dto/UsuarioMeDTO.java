@@ -1,5 +1,7 @@
 package br.com.tutoria.dto;
 
+import java.util.List;
+
 import br.com.tutoria.model.enums.UsuarioTipoEnum;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -22,4 +24,10 @@ public class UsuarioMeDTO {
     // tutores so para descobrir o proprio ID.
     private Long estudanteId;
     private Long tutorId;
+
+    // Areas que a pessoa pode usar. Um estudante aprovado como tutor tem
+    // [ESTUDANTE, TUTOR] e troca de area pelo menu. "tipo" e a area principal
+    // (para onde o login leva quando nao ha preferencia salva).
+    // Candidatura a tutor ainda pendente nao conta: o tutor so vale com disciplina aprovada.
+    private List<UsuarioTipoEnum> perfis;
 }

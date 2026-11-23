@@ -50,5 +50,21 @@ public interface MensagemRepository extends JpaRepository<Mensagem, Long> {
             """)
     long contarNaoLidasDoUsuario(@Param("usuarioId") Long usuarioId);
 
+    @Query("""
+            SELECT COUNT(m) FROM Mensagem m
+            WHERE m.lidaEm IS NULL
+              AND m.remetente.id <> :usuarioId
+              AND m.conversa.tutor.usuario.id = :usuarioId
+            """)
+    long contarNaoLidasComoTutor(@Param("usuarioId") Long usuarioId);
+
+    @Query("""
+            SELECT COUNT(m) FROM Mensagem m
+            WHERE m.lidaEm IS NULL
+              AND m.remetente.id <> :usuarioId
+              AND m.conversa.estudante.usuario.id = :usuarioId
+            """)
+    long contarNaoLidasComoEstudante(@Param("usuarioId") Long usuarioId);
+
     Optional<Mensagem> findFirstByConversa_IdOrderByIdDesc(Long conversaId);
 }

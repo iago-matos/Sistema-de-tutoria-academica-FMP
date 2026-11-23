@@ -100,6 +100,6 @@ class NotificacaoTest extends IntegracaoTestBase {
 
         mockMvc.perform(get("/notificacao").header("Authorization", tokenAdmin()))
                 .andExpect(jsonPath("$[0].tipo").value("CADASTRO_PENDENTE"))
-                .andExpect(jsonPath("$[0].link").value("aprovacoes.html"));
+                .andExpect(jsonPath("$[0].link").value("admin/aprovacoes.html"));
     }
 }

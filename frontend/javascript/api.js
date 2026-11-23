@@ -343,7 +343,14 @@ async function createAvaliacao(payload) {
 
 // visualizar(): agenda de quem esta logado (tutor ou estudante)
 async function fetchMinhaAgenda() {
-    return requestJSON("/agendamento/minha-agenda");
+    return requestJSON("/agendamento/minha-agenda" + parametroPerfilDaArea("?"));
+}
+
+// Quem e estudante e tutor ve, em cada area, so a agenda e as conversas daquele
+// papel. A area vem do <body data-role="estudante|tutor"> da pagina.
+function parametroPerfilDaArea(prefixo) {
+    const role = document.body && document.body.dataset.role;
+    return role === "estudante" || role === "tutor" ? prefixo + "perfil=" + role.toUpperCase() : "";
 }
 
 // visualizar(Disciplina): horarios livres de uma disciplina
@@ -373,7 +380,7 @@ async function anonimizarUsuario(usuarioId) {
 // ── Chat entre tutor e estudante ──────────────────────────────────────────
 
 async function fetchConversas() {
-    return requestJSON("/conversa");
+    return requestJSON("/conversa" + parametroPerfilDaArea("?"));
 }
 
 async function fetchConversa(conversaId) {
@@ -439,4 +446,18 @@ async function redefinirSenhaRequest(token, novaSenha) {
 // Coordenacao: gera o link de redefinicao para entregar a pessoa
 async function gerarLinkRedefinicaoSenha(usuarioId) {
     return postJSON("/usuario/" + usuarioId + "/redefinicao-senha", {});
+}
+
+// ── Candidatura do estudante a tutor (guia "Candidatar-se") ───────────────
+
+async function fetchCandidatura() {
+    return requestJSON("/estudante/me/candidatura");
+}
+
+async function enviarCandidatura(disciplinaId) {
+    return postJSON("/estudante/me/candidatura", { disciplinaId: disciplinaId });
+}
+
+async function cancelarCandidatura() {
+    return deleteJSON("/estudante/me/candidatura");
 }

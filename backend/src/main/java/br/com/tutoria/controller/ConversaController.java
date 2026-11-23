@@ -33,9 +33,12 @@ public class ConversaController {
         this.conversaService = conversaService;
     }
 
+    // ?perfil=TUTOR|ESTUDANTE: so as conversas daquele papel (quem tem os dois perfis)
     @GetMapping
-    public List<ConversaResumoDTO> listar(@AuthenticationPrincipal UserSpringSecurity usuarioLogado) {
-        return conversaService.listar(usuarioLogado);
+    public List<ConversaResumoDTO> listar(
+            @RequestParam(required = false) String perfil,
+            @AuthenticationPrincipal UserSpringSecurity usuarioLogado) {
+        return conversaService.listar(usuarioLogado, perfil);
     }
 
     // Abre a conversa com o tutor (estudante logado) ou com o estudante (tutor logado).

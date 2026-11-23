@@ -78,10 +78,13 @@ public class AgendamentoController {
         return agendamentoService.cancelar(id, usuarioLogado);
     }
 
-    // Agenda de quem está logado (tutor, estudante ou, para admin, todas)
+    // Agenda de quem está logado (tutor, estudante ou, para admin, todas).
+    // ?perfil=ESTUDANTE|TUTOR escolhe a agenda de quem tem os dois perfis.
     @GetMapping("/minha-agenda")
-    public List<Agendamento> minhaAgenda(@AuthenticationPrincipal UserSpringSecurity usuarioLogado) {
-        return agendamentoService.visualizarAgenda(usuarioLogado);
+    public List<Agendamento> minhaAgenda(
+            @RequestParam(required = false) String perfil,
+            @AuthenticationPrincipal UserSpringSecurity usuarioLogado) {
+        return agendamentoService.visualizarAgenda(usuarioLogado, perfil);
     }
 
     // Horários disponíveis (futuros); ?disciplina=Cálculo filtra pela disciplina

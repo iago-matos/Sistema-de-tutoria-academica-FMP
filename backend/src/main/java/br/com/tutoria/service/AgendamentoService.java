@@ -69,10 +69,19 @@ public class AgendamentoService {
                 ? resolverTutor(dados.tutorId())
                 : autorizacaoService.tutorLogado(usuarioLogado);
 
+        if (!disciplinaService.isTutorAtivo(tutor.getId())) {
+            throw new IllegalArgumentException(
+                    "Você poderá abrir horários assim que a coordenação aprovar a sua candidatura a tutor");
+        }
+
         Agendamento novo = Agendamento.disponibilizar(
                 tutor, dados.data(), dados.hora(), dados.observacoes(), dados.linkReuniao());
         exigirNoFuturo(novo);
         exigirAgendaDoTutorLivre(novo);
+        // Quem tambem e estudante nao pode dar tutoria enquanto assiste a outra
+        estudanteRepository.findByUsuario_Id(tutor.getUsuario().getId())
+                .ifPresent(comoEstudante -> exigirAgendaDoEstudanteLivre(comoEstudante, novo,
+                        "Nesse horário você tem uma tutoria marcada como estudante"));
 
         return agendamentoRepository.save(novo);
     }
@@ -85,8 +94,16 @@ public class AgendamentoService {
         Estudante estudante = autorizacaoService.estudanteLogado(usuarioLogado);
         Agendamento agendamento = buscarParaAlterar(agendamentoId);
 
+        // Estudante que tambem e tutor nao solicita o proprio horario
+        if (agendamento.getTutor().getUsuario().getId().equals(estudante.getUsuario().getId())) {
+            throw new IllegalArgumentException("Você não pode solicitar um horário da sua própria agenda de tutor");
+        }
         exigirNoFuturo(agendamento);
-        exigirAgendaDoEstudanteLivre(estudante, agendamento);
+        exigirAgendaDoEstudanteLivre(estudante, agendamento, "Você já tem uma tutoria marcada nesse horário");
+        // ...nem assiste a uma tutoria no horario em que tem sessao como tutor
+        tutorRepository.findByUsuario_Id(estudante.getUsuario().getId())
+                .ifPresent(comoTutor -> exigirAgendaDoTutorLivre(comoTutor.getId(), agendamento,
+                        "Nesse horário você tem uma sessão na sua agenda de tutor"));
         Disciplina disciplina = escolherDisciplina(agendamento.getTutor(), disciplinaId);
 
         if (!agendamento.agendar(estudante, converterModalidade(modalidade), disciplina)) {
@@ -203,10 +220,18 @@ public class AgendamentoService {
 
     // ── Visualizar ───────────────────────────────────────────────────────────
 
-    // Diagrama: visualizar(): agenda de quem esta logado
+    // Diagrama: visualizar(): agenda de quem esta logado.
+    // perfil (TUTOR ou ESTUDANTE) escolhe a agenda de quem tem os dois perfis;
+    // sem ele, vale a de tutor, como antes.
     @Transactional(readOnly = true)
     public List<Agendamento> visualizarAgenda(UserSpringSecurity usuarioLogado) {
-        Optional<Tutor> tutor = tutorRepository.findByUsuario_Id(usuarioLogado.getId());
+        return visualizarAgenda(usuarioLogado, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Agendamento> visualizarAgenda(UserSpringSecurity usuarioLogado, String perfil) {
+        boolean comoEstudante = "ESTUDANTE".equalsIgnoreCase(perfil);
+        Optional<Tutor> tutor = comoEstudante ? Optional.empty() : tutorRepository.findByUsuario_Id(usuarioLogado.getId());
         if (tutor.isPresent()) {
             return agendamentoRepository.findByTutor_IdOrderByDataAscHoraAsc(tutor.get().getId());
         }
@@ -309,22 +334,27 @@ public class AgendamentoService {
     }
 
     private void exigirAgendaDoTutorLivre(Agendamento agendamento) {
+        exigirAgendaDoTutorLivre(agendamento.getTutor().getId(), agendamento, "Você já tem uma sessão nesse horário");
+    }
+
+    private void exigirAgendaDoTutorLivre(Long tutorId, Agendamento agendamento, String mensagem) {
         boolean conflito = agendamentoRepository
-                .findByTutor_IdAndData(agendamento.getTutor().getId(), agendamento.getData()).stream()
+                .findByTutor_IdAndData(tutorId, agendamento.getData()).stream()
                 .filter(outra -> !outra.equals(agendamento))
                 .anyMatch(outra -> outra.ocupaAgenda() && outra.sobrepoe(agendamento));
         if (conflito) {
-            throw new IllegalArgumentException("Você já tem uma sessão nesse horário");
+            throw new IllegalArgumentException(mensagem);
         }
     }
 
-    private void exigirAgendaDoEstudanteLivre(Estudante estudante, Agendamento agendamento) {
+    private void exigirAgendaDoEstudanteLivre(Estudante estudante, Agendamento agendamento, String mensagem) {
         boolean conflito = agendamentoRepository
                 .findByEstudante_IdAndDataAndStatusIn(estudante.getId(), agendamento.getData(), OCUPAM_O_ESTUDANTE)
                 .stream()
+                .filter(outra -> !outra.equals(agendamento))
                 .anyMatch(outra -> outra.sobrepoe(agendamento));
         if (conflito) {
-            throw new IllegalArgumentException("Você já tem uma tutoria marcada nesse horário");
+            throw new IllegalArgumentException(mensagem);
         }
     }
 

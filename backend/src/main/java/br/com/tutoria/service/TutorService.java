@@ -50,7 +50,9 @@ public class TutorService {
         Map<Long, List<DisciplinaDTO>> disciplinas =
                 disciplinaService.ativasPorTutor(tutores.stream().map(Tutor::getId).toList());
 
+        // Sem disciplina aprovada (ex.: candidatura de estudante pendente) o tutor nao atende
         return tutores.stream()
+                .filter(tutor -> disciplinas.containsKey(tutor.getId()))
                 .map(tutor -> paraResumo(tutor, disciplinas.getOrDefault(tutor.getId(), List.of()),
                         estatisticas.get(tutor.getId())))
                 .toList();
