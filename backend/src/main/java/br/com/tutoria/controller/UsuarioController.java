@@ -1,6 +1,7 @@
 package br.com.tutoria.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,6 +23,7 @@ import br.com.tutoria.dto.UsuarioMeDTO;
 import br.com.tutoria.dto.UsuarioResumoDTO;
 import br.com.tutoria.model.Usuario;
 import br.com.tutoria.service.InativacaoDeContaService;
+import br.com.tutoria.service.RedefinicaoSenhaService;
 import br.com.tutoria.service.UsuarioService;
 import jakarta.validation.Valid;
 
@@ -31,10 +33,15 @@ public class UsuarioController {
 
     private final UsuarioService usuarioService;
     private final InativacaoDeContaService inativacaoDeContaService;
+    private final RedefinicaoSenhaService redefinicaoSenhaService;
 
-    public UsuarioController(UsuarioService usuarioService, InativacaoDeContaService inativacaoDeContaService) {
+    public UsuarioController(
+            UsuarioService usuarioService,
+            InativacaoDeContaService inativacaoDeContaService,
+            RedefinicaoSenhaService redefinicaoSenhaService) {
         this.usuarioService = usuarioService;
         this.inativacaoDeContaService = inativacaoDeContaService;
+        this.redefinicaoSenhaService = redefinicaoSenhaService;
     }
 
     // Público — cadastro de novos usuários (liberado no SecurityConfig).
@@ -98,6 +105,14 @@ public class UsuarioController {
             @Valid @RequestBody AlterarSenhaDTO dados,
             @AuthenticationPrincipal UserSpringSecurity user) {
         usuarioService.alterarSenha(user.getId(), dados);
+    }
+
+    // RF02 sem servidor de e-mail: a coordenacao gera o link de redefinicao e o
+    // entrega a pessoa. Vale por 30 minutos e funciona uma vez.
+    @PostMapping("/{id}/redefinicao-senha")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Map<String, Object> gerarLinkDeRedefinicao(@PathVariable Long id) {
+        return redefinicaoSenhaService.gerarParaUsuario(id);
     }
 
     // Nao existe exclusao de conta: a coordenacao inativa, e o historico

@@ -179,6 +179,49 @@ function renderRodapeLogin(config) {
     }
 }
 
+// ── RF02: "Esqueci minha senha" ─────────────────────────────────────────────
+// Com servidor de e-mail no backend, a pessoa recebe o link por e-mail.
+// Sem ele, a tela orienta a pedir o link a coordenacao.
+let loginConfig = null;
+
+function mostrarEsqueciSenha() {
+    esconderFeedback();
+    document.getElementById("loginArea").style.display = "none";
+    document.getElementById("esqueciArea").style.display = "";
+
+    const porEmail = Boolean(loginConfig && loginConfig.recuperacaoSenhaPorEmail);
+    document.getElementById("esqueciGoogle").style.display = loginConfig && loginConfig.googleClientId ? "" : "none";
+    document.getElementById("esqueciForm").style.display = porEmail ? "" : "none";
+    document.getElementById("esqueciSemEmail").style.display = porEmail ? "none" : "";
+
+    const email = document.getElementById("email").value;
+    if (porEmail) {
+        const campo = document.getElementById("esqueciEmail");
+        if (email && !campo.value) campo.value = email;
+        campo.focus();
+    }
+}
+
+function voltarParaLogin() {
+    esconderFeedback();
+    document.getElementById("esqueciArea").style.display = "none";
+    document.getElementById("loginArea").style.display = "";
+}
+
+async function handleEsqueciSenhaSubmit(event) {
+    event.preventDefault();
+    const botao = document.getElementById("esqueciEnviar");
+    botao.disabled = true;
+    try {
+        const resposta = await esqueciSenhaRequest(document.getElementById("esqueciEmail").value.trim());
+        mostrarFeedback(resposta.message, "loading-state");
+    } catch (error) {
+        mostrarFeedback(error.message, "error-state");
+    } finally {
+        botao.disabled = false;
+    }
+}
+
 async function initLoginPage() {
     bindTipoCadastro();
 
@@ -190,6 +233,7 @@ async function initLoginPage() {
         return;
     }
 
+    loginConfig = config;
     renderRodapeLogin(config);
 
     if (!config.googleClientId) return;

@@ -9,6 +9,9 @@ const PAGE_LOADERS = {
     "tutor-agenda": loadTutorAgenda,
     "tutor-avaliacoes": loadTutorAvaliacoes,
     "tutor-disciplinas": loadTutorDisciplinas,
+    // loadMensagens fica em chat.js, carregado so nas paginas de mensagens
+    "estudante-mensagens": function () { return loadMensagens(); },
+    "tutor-mensagens": function () { return loadMensagens(); },
     "admin-dashboard": loadAdminDashboard,
     "admin-aprovacoes": loadAdminAprovacoes,
     "admin-disciplinas": loadAdminDisciplinas,
@@ -39,7 +42,7 @@ async function loadEstudanteDashboard() {
     hideLoader();
 
     const pendingCount = countByStatus(agendamentos, isPendingStatus);
-    initAppShell({ notifCount: pendingCount });
+    initAppShell();
 
     setText("statAgendamentos", countByStatus(agendamentos, isConfirmedStatus));
     setText("statPendentes", pendingCount);
@@ -58,7 +61,6 @@ async function loadEstudanteBuscarTutores() {
     if (!user) return;
 
     initAppShell({
-        notifCount: 0,
         header: { mode: "search", title: "Disciplinas", subtitle: "Carregando..." }
     });
 
@@ -209,7 +211,6 @@ async function loadEstudanteSolicitarAgendamento() {
     const tutorIdParam = getQueryParam("tutorId");
 
     initAppShell({
-        notifCount: 0,
         header: {
             mode: "title",
             title: "Sessões disponíveis",
@@ -241,7 +242,6 @@ async function loadEstudanteMeusAgendamentos() {
     if (!user) return;
 
     initAppShell({
-        notifCount: 0,
         header: { mode: "title", title: "Minhas solicitações", subtitle: "Acompanhe o status das suas tutorias." }
     });
 
@@ -265,7 +265,6 @@ async function loadEstudanteAvaliacoes() {
     const ids = await resolveProfileIds(user);
 
     initAppShell({
-        notifCount: 0,
         header: { mode: "title", title: "Avaliações", subtitle: "Consulte e registre suas avaliações." }
     });
 
@@ -589,7 +588,7 @@ async function loadTutorDashboard() {
     const ids = await resolveProfileIds(user);
 
     if (!ids.tutorId) {
-        initAppShell({ notifCount: 0 });
+        initAppShell();
         showError("Perfil de tutor não encontrado. Verifique seu cadastro.");
         return;
     }
@@ -604,7 +603,7 @@ async function loadTutorDashboard() {
     const pendingCount = countByStatus(agendamentos, isPendingStatus);
 
     hideLoader();
-    initAppShell({ notifCount: pendingCount || 0 });
+    initAppShell();
 
     setText("statAgendamentos", countByStatus(agendamentos, isConfirmedStatus));
     setText("statPendentes", pendingCount);
@@ -623,18 +622,16 @@ async function loadTutorSolicitacoes() {
     const ids = await resolveProfileIds(user);
 
     if (!ids.tutorId) {
-        initAppShell({ notifCount: 0, header: { mode: "title", title: "Solicitações pendentes", subtitle: "" } });
+        initAppShell({ header: { mode: "title", title: "Solicitações pendentes", subtitle: "" } });
         showError("Perfil de tutor não encontrado.");
         return;
     }
 
     showLoader("Carregando solicitações...");
     const agendamentos = await safeArray(fetchTutorAgendamentos(ids.tutorId));
-    const pendingCount = countByStatus(agendamentos, isPendingStatus);
     hideLoader();
 
     initAppShell({
-        notifCount: pendingCount || 0,
         header: { mode: "title", title: "Solicitações pendentes", subtitle: "Confirme ou recuse pedidos de tutoria." }
     });
 
@@ -704,8 +701,7 @@ async function loadAdminDashboard() {
     ]);
 
     hideLoader();
-    // O sino do menu mostra quantos cadastros aguardam aprovacao
-    initAppShell({ notifCount: results[5].length });
+    initAppShell();
     setText("statUsuarios", results[0].length);
     setText("statEstudantes", results[1].length);
     setText("statTutores", results[2].length);
@@ -724,7 +720,6 @@ async function loadAdminAprovacoes() {
     hideLoader();
 
     initAppShell({
-        notifCount: pendentes.length + pedidos.length,
         header: {
             mode: "title",
             title: "Aprovações",
@@ -1159,6 +1154,10 @@ async function loadAdminUsuarios() {
         const botaoEditar = usuario.status === "ANONIMIZADO"
             ? ""
             : "<button class=\"btn secondary sm\" type=\"button\" data-action=\"edit-usuario\" data-usuario-id=\"" + id + "\">Editar</button>";
+        // RF02: link para a pessoa criar uma nova senha (sem depender de e-mail)
+        const botaoSenha = usuario.status === "ATIVO"
+            ? "<button class=\"btn secondary sm\" type=\"button\" data-action=\"link-senha\" data-usuario-id=\"" + id + "\" title=\"Gerar link para a pessoa criar uma nova senha\">Link de senha</button>"
+            : "";
         return "<tr>"
             + "<td>#" + escapeHTML(usuario.id) + "</td>"
             + "<td>" + escapeHTML(usuario.nome) + "</td>"
@@ -1167,6 +1166,7 @@ async function loadAdminUsuarios() {
             + "<td>" + usuarioStatusBadge(usuario.status) + "</td>"
             + "<td><div class=\"admin-actions\">"
             + botaoEditar
+            + botaoSenha
             + acaoConta
             + "</div></td></tr>";
     }).join("");
@@ -1242,6 +1242,29 @@ async function loadAdminUsuarios() {
                 await anonimizarUsuario(usuario.id);
                 await loadAdminUsuarios();
                 showFeedback("feedback", "Os dados pessoais de " + usuario.nome + " foram apagados.", "success");
+            } catch (error) {
+                showFeedback("feedback", error.message, "error");
+            }
+        });
+    });
+
+    table.querySelectorAll("[data-action='link-senha']").forEach(function (button) {
+        button.addEventListener("click", async function () {
+            const usuario = porId(button.getAttribute("data-usuario-id"));
+            if (!usuario) return;
+
+            if (!confirm("Gerar um link para " + usuario.nome + " criar uma nova senha?\n\n"
+                    + "Entregue o link somente à própria pessoa (pessoalmente ou pelo e-mail institucional). "
+                    + "Ele vale por 30 minutos e funciona uma única vez.")) {
+                return;
+            }
+
+            try {
+                const resposta = await gerarLinkRedefinicaoSenha(usuario.id);
+                const link = new URL("../redefinir-senha.html?token=" + encodeURIComponent(resposta.token),
+                    window.location.href).href;
+                try { await navigator.clipboard.writeText(link); } catch (_) { /* sem permissao: fica o prompt */ }
+                prompt("Link copiado. Envie para " + usuario.email + " (válido por 30 minutos):", link);
             } catch (error) {
                 showFeedback("feedback", error.message, "error");
             }

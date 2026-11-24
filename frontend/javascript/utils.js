@@ -215,6 +215,14 @@ function renderAgendamentosTable(tableId, agendamentos, options) {
     table.innerHTML = header + "<tbody>" + rows + "</tbody>";
 }
 
+// Botao que abre o chat com a pessoa (mensagens.html cria a conversa se preciso).
+// parametro: "tutorId" (estudante logado) ou "estudanteId" (tutor logado)
+function linkConversar(parametro, id, rotulo) {
+    if (!id) return "";
+    return "<a class=\"btn secondary sm\" href=\"mensagens.html?" + parametro + "=" + encodeURIComponent(id) + "\">"
+        + icon("chat") + " " + escapeHTML(rotulo) + "</a>";
+}
+
 function renderPendingRequests(id, agendamentos, options) {
     const target = document.getElementById(id);
     if (!target) return;
@@ -244,6 +252,7 @@ function renderPendingRequests(id, agendamentos, options) {
             + "<p class=\"item-meta\">" + escapeHTML(meta) + "</p>"
             + "</div>"
             + "<div class=\"item-actions\">"
+            + linkConversar("estudanteId", agendamento.estudante && agendamento.estudante.id, "Mensagem")
             + "<button class=\"btn outline-danger\" type=\"button\" data-agendamento-id=\"" + escapeHTML(agendamento.id) + "\" data-action=\"reject-agendamento\" title=\"Recusar\" aria-label=\"Recusar\">" + icon("x") + "</button>"
             + "<button class=\"btn\" type=\"button\" data-agendamento-id=\"" + escapeHTML(agendamento.id) + "\" data-action=\"confirm-agendamento\">" + icon("check") + " Confirmar</button>"
             + "</div></div>";
@@ -461,6 +470,7 @@ function renderEstudanteAgendamentoCards(id, agendamentos, options) {
             + "<div class=\"item-actions\">"
             + statusBadge(agendamento.status, STATUS_ESTUDANTE[status])
             + entrar
+            + linkConversar("tutorId", agendamento.tutor && agendamento.tutor.id, "Mensagem")
             + cancelar
             + "</div></div>";
     }).join("");
@@ -657,7 +667,9 @@ function renderDetalheDisciplina(id, tutores, horarios, onSolicitar, onCancelar,
             + "<p class=\"item-name\">" + escapeHTML(nome) + "</p>"
             + "<p class=\"item-meta\">" + escapeHTML(disciplinasDoTutor(tutor)) + "</p>"
             + avaliacao
-            + "</div></div>"
+            + "</div>"
+            + linkConversar("tutorId", tutor.id, "Conversar")
+            + "</div>"
             + slots
             + "</div>";
     }).join("");

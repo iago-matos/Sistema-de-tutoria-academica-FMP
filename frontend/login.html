@@ -39,7 +39,30 @@
                     <input type="password" id="senha" required placeholder="••••••••">
                 </div>
                 <button class="btn" type="submit">Entrar</button>
+                <button class="link-btn" type="button" onclick="mostrarEsqueciSenha()">Esqueci minha senha</button>
             </form>
+        </div>
+
+        <!-- RF02: recuperacao de senha -->
+        <div id="esqueciArea" style="display:none;">
+            <h2>Esqueci minha senha</h2>
+            <p class="muted auth-texto" id="esqueciGoogle">
+                Estudantes e tutores que entram com a conta Google institucional não precisam de senha:
+                use o botão <strong>Fazer login com o Google</strong>.
+            </p>
+            <form id="esqueciForm" class="auth-form-espacado" onsubmit="handleEsqueciSenhaSubmit(event)" style="display:none;">
+                <p class="muted auth-texto">Informe o e-mail da sua conta. Enviaremos um link para criar uma nova senha.</p>
+                <div class="field">
+                    <label for="esqueciEmail">E-mail</label>
+                    <input type="email" id="esqueciEmail" required placeholder="seu@email.com" autocomplete="email">
+                </div>
+                <button class="btn" type="submit" id="esqueciEnviar">Enviar link</button>
+            </form>
+            <p class="muted auth-texto" id="esqueciSemEmail" style="display:none;">
+                Se você entra com e-mail e senha, peça à <strong>coordenação</strong> um link de redefinição.
+                O link vale por 30 minutos e funciona uma única vez.
+            </p>
+            <button class="btn ghost" type="button" onclick="voltarParaLogin()">Voltar para o login</button>
         </div>
 
         <!-- Primeiro acesso com Google: escolha do perfil -->
@@ -73,6 +96,9 @@
         <div id="feedback" style="display:none;margin-top:12px;"></div>
         <p class="auth-footer" id="authFooter">
             Não possui cadastro? <a href="signup.html">Cadastrar-se</a>
+        </p>
+        <p class="auth-footer" style="margin-top:8px;">
+            <a href="ajuda.html" target="_blank" rel="noopener">Ajuda</a> · <a href="privacidade.html">Privacidade</a>
         </p>
     </div>
 </body>
