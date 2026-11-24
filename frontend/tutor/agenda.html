@@ -84,6 +84,13 @@
                         </div>
                     </div>
                     <div class="field">
+                        <label for="modalDisciplina">Disciplina</label>
+                        <select id="modalDisciplina" required>
+                            <option value="">Carregando...</option>
+                        </select>
+                        <span class="field-hint" id="modalDisciplinaHint"></span>
+                    </div>
+                    <div class="field">
                         <label>Duração</label>
                         <!-- Por enquanto toda sessão dura 1h; escolher a duração será uma feature futura -->
                         <div class="duration-fixed">
@@ -223,9 +230,10 @@ function buildHeader(weekStart) {
 }
 
 function sessionLabel(s) {
-    if (s.status === 'DISPONIVEL') return 'Livre · ' + hhmm(s.hora);
+    const disciplina = s.disciplina && s.disciplina.nome ? ' · ' + s.disciplina.nome : '';
+    if (s.status === 'DISPONIVEL') return 'Livre · ' + hhmm(s.hora) + disciplina;
     const name = getEstudanteName(s).split(' ').slice(0, 2).join(' ');
-    return name + ' · ' + hhmm(s.hora) + (s.modalidade === 'ONLINE' ? ' · Online' : '');
+    return name + ' · ' + hhmm(s.hora) + disciplina + (s.modalidade === 'ONLINE' ? ' · Online' : '');
 }
 
 // Mesma regra do backend: só endereços https://
@@ -318,6 +326,38 @@ function atualizarHoraFim() {
     document.getElementById('modalHoraFim').textContent = hora ? 'das ' + hora + ' às ' + addOneHour(hora) : '';
 }
 
+// O tutor escolhe para qual das suas disciplinas ativas o horario e aberto.
+// Com uma so, ela ja vem marcada; pedidos pendentes ou recusados nao aparecem.
+async function carregarDisciplinasDoHorario() {
+    const select = document.getElementById('modalDisciplina');
+    const hint = document.getElementById('modalDisciplinaHint');
+    const submit = document.getElementById('modalSubmit');
+    let ativas = [];
+    try {
+        ativas = (await fetchMinhasDisciplinas())
+            .filter(function (v) { return v.status === 'ATIVA'; })
+            .map(function (v) { return v.disciplina; })
+            .sort(function (a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); });
+    } catch (err) {
+        select.innerHTML = '<option value="">Não foi possível carregar</option>';
+        hint.textContent = err.message;
+        return;
+    }
+
+    const opcoes = ativas.map(function (d) {
+        return '<option value="' + escapeHTML(d.id) + '">' + escapeHTML(d.nome) + '</option>';
+    }).join('');
+    select.innerHTML = (ativas.length > 1 ? '<option value="">Escolha a disciplina</option>' : '') + opcoes;
+    select.disabled = ativas.length === 0;
+    submit.disabled = ativas.length === 0;
+
+    hint.innerHTML = ativas.length === 0
+        ? 'Você ainda não tem disciplina aprovada. Peça na guia <a href="disciplinas.html">Disciplinas</a>.'
+        : ativas.length === 1
+            ? 'Para abrir horários em outras disciplinas, peça na guia <a href="disciplinas.html">Disciplinas</a>.'
+            : 'O horário aparece para os estudantes só nesta disciplina.';
+}
+
 function openModal(date, hour) {
     document.getElementById('modalData').value = date || formatDate(new Date());
     document.getElementById('modalData').min = formatDate(new Date());
@@ -325,6 +365,7 @@ function openModal(date, hour) {
     document.getElementById('modalSubtitle').textContent =
         (date ? formatDisplayDate(date) : '') + (hour ? ' às ' + hour.substring(0, 5) : '');
     atualizarHoraFim();
+    carregarDisciplinasDoHorario();
     document.getElementById('modalOverlay').classList.add('open');
     document.getElementById('modalHora').focus();
 }
@@ -347,9 +388,14 @@ document.getElementById('modalSubmit').addEventListener('click', async function 
     const hora = document.getElementById('modalHora').value;
     const obs = document.getElementById('modalObs').value.trim();
     const link = document.getElementById('modalLink').value.trim();
+    const disciplinaId = Number(document.getElementById('modalDisciplina').value) || null;
 
     if (!data || !hora) {
         showFeedback('modalFeedback', 'Informe a data e o horário de início.', 'error');
+        return;
+    }
+    if (!disciplinaId) {
+        showFeedback('modalFeedback', 'Escolha a disciplina deste horário.', 'error');
         return;
     }
     if (!linkValido(link)) {
@@ -362,9 +408,12 @@ document.getElementById('modalSubmit').addEventListener('click', async function 
     btn.textContent = 'Salvando...';
 
     try {
-        // O horário nasce DISPONIVEL, com 1h de duração, sempre na agenda do
-        // tutor logado. O estudante é vinculado quando solicitar a tutoria.
-        await createAgendamento({ data: data, hora: hora, observacoes: obs || null, linkReuniao: link || null });
+        // O horário nasce DISPONIVEL, com 1h de duração e a disciplina escolhida,
+        // sempre na agenda do tutor logado. O estudante é vinculado quando solicitar.
+        await createAgendamento({
+            data: data, hora: hora, disciplinaId: disciplinaId,
+            observacoes: obs || null, linkReuniao: link || null
+        });
         closeModal();
         // Mostra a semana do horário criado (a data pode ter sido trocada no modal)
         currentWeekStart = getWeekStart(new Date(data + 'T00:00'));
@@ -394,7 +443,7 @@ function openDetalhe(id) {
                 ? ' <a class="btn secondary sm" href="mensagens.html?estudanteId=' + encodeURIComponent(s.estudante.id) + '">' + icon('chat') + ' Mensagem</a>'
                 : '') + '</dd>'
         + '<dt>Disciplina</dt><dd>' + escapeHTML(s.disciplina ? s.disciplina.nome
-            : (s.estudante ? '--' : 'O estudante escolhe entre as suas disciplinas')) + '</dd>'
+            : (s.estudante ? '--' : 'O estudante escolhe entre as suas disciplinas (horário antigo)')) + '</dd>'
         + '<dt>Modalidade</dt><dd>' + escapeHTML(s.modalidade
             ? MODALIDADE_LABEL[s.modalidade]
             : (s.onlineDisponivel ? 'O estudante escolhe: presencial ou online' : 'Somente presencial')) + '</dd>'

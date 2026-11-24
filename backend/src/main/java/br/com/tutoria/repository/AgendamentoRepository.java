@@ -74,7 +74,8 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             @Param("statusTutor") UsuarioStatusEnum statusTutor);
 
     // Mesma consulta filtrando pela disciplina, sem diferenciar maiusculas.
-    // O horario livre aparece em todas as disciplinas ATIVAS do tutor.
+    // O horario aparece na disciplina escolhida pelo tutor, se ela continua ATIVA
+    // para ele. Horario antigo, sem disciplina, aparece em todas as ATIVAS do tutor.
     @Query("""
             SELECT a FROM Agendamento a
             JOIN FETCH a.tutor t
@@ -86,7 +87,8 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
                   SELECT 1 FROM TutorDisciplina td
                   WHERE td.tutor = t
                     AND td.status = br.com.tutoria.model.enums.TutorDisciplinaStatusEnum.ATIVA
-                    AND LOWER(td.disciplina.nome) = LOWER(TRIM(:disciplina)))
+                    AND LOWER(td.disciplina.nome) = LOWER(TRIM(:disciplina))
+                    AND (a.disciplina IS NULL OR a.disciplina = td.disciplina))
             ORDER BY a.data ASC, a.hora ASC
             """)
     List<Agendamento> findDisponiveisPorDisciplina(

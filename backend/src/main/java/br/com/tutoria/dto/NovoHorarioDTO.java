@@ -6,11 +6,13 @@ import java.time.LocalTime;
 // Corpo do POST /agendamento. O status e o estudante nao vem do cliente:
 // o horario sempre nasce DISPONIVEL. tutorId so e considerado para administradores
 // (um tutor sempre cria na propria agenda). linkReuniao e opcional: com ele,
-// o estudante tambem pode escolher a tutoria online.
+// o estudante tambem pode escolher a tutoria online. disciplinaId: a disciplina
+// da tutoria, entre as ativas do tutor (opcional se ele atende so uma).
 public record NovoHorarioDTO(
         LocalDate data,
         LocalTime hora,
         String observacoes,
         String linkReuniao,
-        Long tutorId) {
+        Long tutorId,
+        Long disciplinaId) {
 }

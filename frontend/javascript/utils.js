@@ -544,9 +544,14 @@ function agruparPorDisciplina(tutores, horarios) {
         disciplinasPorTutor.set(tutor.id, chaves);
     });
 
+    // O horario conta so na disciplina escolhida pelo tutor; horario antigo,
+    // sem disciplina, conta em todas as do tutor
     (horarios || []).forEach(function (horario) {
-        (disciplinasPorTutor.get(horario.tutor && horario.tutor.id) || []).forEach(function (chave) {
-            grupos.get(chave).totalHorarios++;
+        const doTutor = disciplinasPorTutor.get(horario.tutor && horario.tutor.id) || [];
+        const daSessao = horario.disciplina && horario.disciplina.nome
+            ? normalizarDisciplina(horario.disciplina.nome) : null;
+        doTutor.forEach(function (chave) {
+            if (!daSessao || daSessao === chave) grupos.get(chave).totalHorarios++;
         });
     });
 

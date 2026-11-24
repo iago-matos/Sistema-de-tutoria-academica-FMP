@@ -317,8 +317,11 @@ Cadastrar um coordenador **nao** concede o perfil de administrador.
 - O **tutor** pode atender varias disciplinas. A do cadastro ja vale; as pedidas
   depois, na guia **Disciplinas** do tutor, ficam aguardando a aprovacao na guia
   **Aprovacoes**. O tutor precisa manter ao menos uma disciplina ativa.
-- O **horario livre** do tutor aparece em todas as disciplinas ativas dele. Ao
-  solicitar, o estudante escolhe a disciplina, que fica registrada na tutoria.
+- Ao **abrir um horario** na agenda, o tutor escolhe para qual das suas
+  disciplinas ativas ele e (`disciplinaId` no `POST /agendamento`; opcional se ele
+  atende uma so). O horario aparece aos estudantes so nessa disciplina e a mantem
+  se o estudante desistir. Horarios antigos, sem disciplina, aparecem em todas as
+  disciplinas ativas do tutor e o estudante escolhe ao solicitar.
 - Bancos criados antes desta versao sao migrados ao subir a aplicacao
   (`AjusteDeEsquema`): o texto antigo da disciplina de cada tutor vira uma
   disciplina da lista, e a coluna antiga e apagada.

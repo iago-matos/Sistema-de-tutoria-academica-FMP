@@ -92,8 +92,9 @@ public class Agendamento {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "agendamentos", "avaliacoes"})
     private Estudante estudante;
 
-    // Disciplina escolhida pelo estudante ao solicitar. O horario livre nao tem
-    // disciplina: ele aparece em todas as disciplinas ativas do tutor.
+    // Disciplina da tutoria. O tutor escolhe ao abrir o horario, entre as que ele
+    // atende, e o horario aparece so nessa disciplina. Horarios antigos, criados
+    // sem disciplina, aparecem em todas as do tutor e o estudante escolhe ao solicitar.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "disciplina_id", nullable = true)
     private Disciplina disciplina;
@@ -108,11 +109,19 @@ public class Agendamento {
     // Com link de videoconferencia, o estudante tambem pode escolher a opcao online
     public static Agendamento disponibilizar(
             Tutor tutor, LocalDate data, LocalTime hora, String observacoes, String linkReuniao) {
+        return disponibilizar(tutor, null, data, hora, observacoes, linkReuniao);
+    }
+
+    // Diagrama: disponibilizar(tutor, disciplina, data, hora, observacoes).
+    // O AgendamentoService confere se a disciplina esta entre as ativas do tutor.
+    public static Agendamento disponibilizar(Tutor tutor, Disciplina disciplina, LocalDate data,
+            LocalTime hora, String observacoes, String linkReuniao) {
         if (tutor == null) {
             throw new IllegalArgumentException("O tutor é obrigatório");
         }
         Agendamento agendamento = new Agendamento();
         agendamento.tutor = tutor;
+        agendamento.disciplina = disciplina;
         agendamento.definirHorario(data, hora);
         agendamento.alterarObservacoes(observacoes);
         agendamento.linkReuniao = validarLink(linkReuniao);
@@ -134,7 +143,8 @@ public class Agendamento {
         return agendar(estudante, modalidade, null);
     }
 
-    // A disciplina vem do AgendamentoService, que confere se o tutor a atende
+    // A disciplina vem do AgendamentoService, que confere se o tutor a atende.
+    // Se o horario ja tem disciplina (escolhida pelo tutor), ela nao muda.
     public boolean agendar(Estudante estudante, ModalidadeEnum modalidade, Disciplina disciplina) {
         if (estudante == null) {
             throw new IllegalArgumentException("O estudante é obrigatório");
@@ -148,9 +158,14 @@ public class Agendamento {
         if (modalidade == ModalidadeEnum.ONLINE && !isOnlineDisponivel()) {
             throw new IllegalArgumentException("Este horário não tem opção online, apenas presencial");
         }
+        if (this.disciplina != null && disciplina != null && !mesmaDisciplina(this.disciplina, disciplina)) {
+            throw new IllegalArgumentException("Este horário é de " + this.disciplina.getNome());
+        }
         this.estudante = estudante;
         this.modalidade = modalidade;
-        this.disciplina = disciplina;
+        if (this.disciplina == null) {
+            this.disciplina = disciplina;
+        }
         this.status = AgendamentoStatusEnum.PENDENTE;
         return true;
     }
@@ -166,14 +181,14 @@ public class Agendamento {
 
     // ── Demais transicoes ────────────────────────────────────────────────────
 
-    // Estudante desiste: a vaga volta a ficar livre para outros estudantes
+    // Estudante desiste: a vaga volta a ficar livre para outros estudantes,
+    // na mesma disciplina
     public AgendamentoStatusEnum desistir() {
         if (status != AgendamentoStatusEnum.PENDENTE && status != AgendamentoStatusEnum.CONFIRMADO) {
             throw new IllegalArgumentException("Só é possível desistir de sessões pendentes ou confirmadas");
         }
         this.estudante = null;
         this.modalidade = null;
-        this.disciplina = null;
         this.status = AgendamentoStatusEnum.DISPONIVEL;
         return status;
     }
@@ -250,6 +265,10 @@ public class Agendamento {
     // Sessoes canceladas liberam o horario na agenda do tutor e do estudante
     public boolean ocupaAgenda() {
         return status != AgendamentoStatusEnum.CANCELADO;
+    }
+
+    private static boolean mesmaDisciplina(Disciplina a, Disciplina b) {
+        return a == b || (a.getId() != null && a.getId().equals(b.getId()));
     }
 
     public boolean comecouAte(LocalDateTime instante) {
