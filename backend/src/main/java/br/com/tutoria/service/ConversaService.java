@@ -41,6 +41,7 @@ public class ConversaService {
     private final EstudanteRepository estudanteRepository;
     private final AgendamentoRepository agendamentoRepository;
     private final AutorizacaoService autorizacaoService;
+    private final DisciplinaService disciplinaService;
     private final Clock clock;
 
     public ConversaService(
@@ -50,6 +51,7 @@ public class ConversaService {
             EstudanteRepository estudanteRepository,
             AgendamentoRepository agendamentoRepository,
             AutorizacaoService autorizacaoService,
+            DisciplinaService disciplinaService,
             Clock clock) {
         this.conversaRepository = conversaRepository;
         this.mensagemRepository = mensagemRepository;
@@ -57,6 +59,7 @@ public class ConversaService {
         this.estudanteRepository = estudanteRepository;
         this.agendamentoRepository = agendamentoRepository;
         this.autorizacaoService = autorizacaoService;
+        this.disciplinaService = disciplinaService;
         this.clock = clock;
     }
 
@@ -84,6 +87,10 @@ public class ConversaService {
         } else {
             throw new IllegalArgumentException("Informe o tutor (tutorId) ou o estudante (estudanteId) da conversa");
         }
+        // Candidatura de estudante ainda pendente: o tutor nao atende, entao nao recebe conversas
+        if (!disciplinaService.isTutorAtivo(tutor.getId())) {
+            throw new IllegalArgumentException("Este tutor ainda não está atendendo");
+        }
 
         Optional<Conversa> existente = conversaRepository.findByTutor_IdAndEstudante_Id(tutor.getId(), estudante.getId());
         Conversa conversa = existente.orElseGet(() ->
@@ -94,8 +101,18 @@ public class ConversaService {
 
     @Transactional(readOnly = true)
     public List<ConversaResumoDTO> listar(UserSpringSecurity usuarioLogado) {
+        return listar(usuarioLogado, null);
+    }
+
+    // perfil TUTOR ou ESTUDANTE: so as conversas em que a pessoa tem esse papel
+    // (quem e estudante e tutor ve, em cada area, as conversas daquela area)
+    @Transactional(readOnly = true)
+    public List<ConversaResumoDTO> listar(UserSpringSecurity usuarioLogado, String perfil) {
         Long usuarioId = usuarioLogado.getId();
-        List<Conversa> conversas = conversaRepository.findDoUsuario(usuarioId);
+        List<Conversa> conversas = conversaRepository.findDoUsuario(usuarioId).stream()
+                .filter(c -> perfil == null || perfil.isBlank()
+                        || ("TUTOR".equalsIgnoreCase(perfil) == c.getTutor().getUsuario().getId().equals(usuarioId)))
+                .toList();
         if (conversas.isEmpty()) {
             return List.of();
         }
@@ -147,6 +164,14 @@ public class ConversaService {
     @Transactional(readOnly = true)
     public long totalNaoLidas(Long usuarioId) {
         return mensagemRepository.contarNaoLidasDoUsuario(usuarioId);
+    }
+
+    // Nao lidas so nas conversas em que a pessoa e o tutor (comoTutor) ou o estudante
+    @Transactional(readOnly = true)
+    public long totalNaoLidas(Long usuarioId, boolean comoTutor) {
+        return comoTutor
+                ? mensagemRepository.contarNaoLidasComoTutor(usuarioId)
+                : mensagemRepository.contarNaoLidasComoEstudante(usuarioId);
     }
 
     // ── Auxiliares ───────────────────────────────────────────────────────────

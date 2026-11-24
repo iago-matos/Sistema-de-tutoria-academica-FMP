@@ -13,6 +13,8 @@ const ICONS = {
     plus:     '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
     chat:     '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
     send:     '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
+    award:    '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.48 12.89 17 22l-5-3-5 3 1.52-9.11"/></svg>',
+    swap:     '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>',
     lock:     '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'
 };
 
@@ -30,7 +32,9 @@ const NAV_MENUS = {
         { id: "tutores", label: "Tutores", href: "buscar-tutores.html", icon: "users" },
         { id: "solicitacoes", label: "Solicitações", href: "meus-agendamentos.html", icon: "calendar" },
         { id: "mensagens", label: "Mensagens", href: "mensagens.html", icon: "chat" },
-        { id: "avaliacoes", label: "Avaliações", href: "avaliacoes.html", icon: "star" }
+        { id: "avaliacoes", label: "Avaliações", href: "avaliacoes.html", icon: "star" },
+        // Some quando o estudante ja e tutor (ai aparece "Área do tutor")
+        { id: "candidatar", label: "Candidatar-se", href: "candidatar-se.html", icon: "award", ocultarSeTutor: true }
     ],
     admin: [
         { id: "inicio", label: "Início", href: "dashboard.html", icon: "home" },
@@ -65,7 +69,11 @@ function renderSidebar(role, activeNav) {
     const sidebar = document.getElementById("sidebar");
     if (!sidebar) return;
 
-    const menu = NAV_MENUS[role] || [];
+    const user = getStoredUser();
+    const ehTutor = temPerfil(user, "TUTOR");
+    const menu = (NAV_MENUS[role] || []).filter(function (item) {
+        return !(item.ocultarSeTutor && ehTutor);
+    });
     const navItems = menu.map(function (item) {
         const activeClass = item.id === activeNav ? " active" : "";
         return '<li><a class="nav-link' + activeClass + '" href="' + item.href + '">'
@@ -81,6 +89,7 @@ function renderSidebar(role, activeNav) {
         + "</div>"
         + '<nav aria-label="Menu principal"><ul class="nav-list">' + navItems + "</ul></nav>"
         + '<div class="sidebar-footer">'
+        + botaoTrocarArea(role, user)
         + '<button class="nav-link" type="button" data-action="notifications" aria-haspopup="dialog" aria-expanded="false">'
         + icon("bell") + "<span>Notificações</span>"
         + '<span class="notif-badge" id="notifBadge" hidden></span></button>'
@@ -102,6 +111,19 @@ function renderSidebar(role, activeNav) {
         helpBtn.textContent = "?";
         document.body.appendChild(helpBtn);
     }
+}
+
+// Quem e estudante e tutor (candidatura aprovada) troca de area por aqui
+const OUTRA_AREA = {
+    estudante: { perfil: "TUTOR", pasta: "tutor", rotulo: "Área do tutor" },
+    tutor: { perfil: "ESTUDANTE", pasta: "estudante", rotulo: "Área do estudante" }
+};
+
+function botaoTrocarArea(role, user) {
+    const outra = OUTRA_AREA[role];
+    if (!outra || !temPerfil(user, outra.perfil)) return "";
+    return '<a class="nav-link trocar-area" href="../' + outra.pasta + '/dashboard.html" data-perfil="' + outra.perfil + '">'
+        + icon("swap") + "<span>" + outra.rotulo + "</span></a>";
 }
 
 function renderPageHeader(options) {
@@ -158,6 +180,12 @@ function initAppShell(options) {
             alternarPainelNotificacoes(notifBtn);
         });
     }
+    const trocar = document.querySelector(".trocar-area");
+    if (trocar) {
+        trocar.addEventListener("click", function () {
+            lembrarArea(trocar.getAttribute("data-perfil"));
+        });
+    }
     atualizarNotificacoes();
 }
 
@@ -176,8 +204,10 @@ async function atualizarNotificacoes() {
     const total = notificacoesAtuais.reduce(function (soma, n) { return soma + (n.quantidade || 0); }, 0);
     definirBadge(document.getElementById("notifBadge"), total);
 
+    // O menu desta area conta so as mensagens desta area (ex.: "tutor/mensagens.html")
+    const role = document.body.dataset.role;
     const mensagens = notificacoesAtuais
-        .filter(function (n) { return n.tipo === "MENSAGEM"; })
+        .filter(function (n) { return n.tipo === "MENSAGEM" && String(n.link).indexOf(role + "/") === 0; })
         .reduce(function (soma, n) { return soma + n.quantidade; }, 0);
     definirBadge(document.querySelector("[data-badge='mensagens']"), mensagens);
 
@@ -200,7 +230,7 @@ function preencherPainelNotificacoes(painel) {
         return;
     }
     lista.innerHTML = notificacoesAtuais.map(function (n) {
-        return '<a class="notif-item notif-' + escapeHTML(String(n.tipo).toLowerCase()) + '" href="' + escapeHTML(n.link) + '">'
+        return '<a class="notif-item notif-' + escapeHTML(String(n.tipo).toLowerCase()) + '" href="../' + escapeHTML(n.link) + '">'
             + '<span class="notif-dot" aria-hidden="true"></span>'
             + '<span class="notif-text"><strong>' + escapeHTML(n.titulo) + "</strong>"
             + "<span>" + escapeHTML(n.descricao) + "</span></span></a>";

@@ -186,6 +186,12 @@ classDiagram
   `Coordenador` nao herdam de `Usuario`: cada um *tem* um `Usuario` (relacao
   1 para 0..1). O login, a senha e o status da conta ficam num lugar so, e
   cada perfil guarda apenas o que e dele.
+- **A mesma conta pode ser estudante e tutor.** E a vantagem da associacao:
+  o estudante se candidata pela guia *Candidatar-se* e ganha um `Tutor` ligado
+  ao mesmo `Usuario`, com a disciplina como `TutorDisciplina` `PENDENTE`. O
+  tutor so e *ativo* (aparece na busca, abre horarios) com ao menos uma
+  disciplina `ATIVA`. Nao se usa `Usuario.status`, que bloquearia o login do
+  estudante enquanto a candidatura e avaliada.
 - **Administrador e um papel, nao uma classe.** Quem e admin tem `ADMIN` em
   `Usuario.profiles`. Cadastrar um `Coordenador` nao concede esse papel.
 - **`TutorDisciplina` e uma classe de associacao.** Liga tutor e disciplina e

@@ -4,6 +4,7 @@ const PAGE_LOADERS = {
     "estudante-solicitar-agendamento": loadEstudanteSolicitarAgendamento,
     "estudante-meus-agendamentos": loadEstudanteMeusAgendamentos,
     "estudante-avaliacoes": loadEstudanteAvaliacoes,
+    "estudante-candidatar": loadEstudanteCandidatar,
     "tutor-dashboard": loadTutorDashboard,
     "tutor-solicitacoes": loadTutorSolicitacoes,
     "tutor-agenda": loadTutorAgenda,
@@ -77,7 +78,7 @@ async function loadEstudanteBuscarTutores() {
     // Recarrega os contadores ("3 horários livres") depois de solicitar/cancelar no popup
     const carregarDisciplinas = async function () {
         const [tutores, horarios] = await Promise.all([fetchTutores(), safeArray(fetchSessoesDisponiveis())]);
-        disciplinas = agruparPorDisciplina(tutores, horarios);
+        disciplinas = agruparPorDisciplina(semOProprioPerfilDeTutor(tutores), semOsPropriosHorarios(horarios));
         mostrar();
     };
 
@@ -102,6 +103,22 @@ async function loadEstudanteBuscarTutores() {
 
     const inicial = getQueryParam("disciplina");
     if (inicial) popup.abrir(inicial);
+}
+
+// Estudante que tambem e tutor nao ve a si mesmo na busca de tutores
+function meuTutorId() {
+    const user = getStoredUser();
+    return user && user.tutorId != null ? Number(user.tutorId) : null;
+}
+
+function semOProprioPerfilDeTutor(tutores) {
+    const proprio = meuTutorId();
+    return (tutores || []).filter(function (t) { return t.id !== proprio; });
+}
+
+function semOsPropriosHorarios(horarios) {
+    const proprio = meuTutorId();
+    return (horarios || []).filter(function (h) { return !h.tutor || h.tutor.id !== proprio; });
 }
 
 function criarPopupDisciplina(aoFecharComMudancas) {
@@ -141,7 +158,7 @@ function criarPopupDisciplina(aoFecharComMudancas) {
         try {
             const [tutores, horarios] = await Promise.all([fetchTutores(), fetchHorariosPorDisciplina(disciplina)]);
             const chave = normalizarDisciplina(disciplina);
-            const daDisciplina = tutores.filter(function (t) { return tutorAtende(t, disciplina); });
+            const daDisciplina = semOProprioPerfilDeTutor(tutores).filter(function (t) { return tutorAtende(t, disciplina); });
             // A solicitacao vai com a disciplina do popup: o tutor pode atender varias
             const escolhida = daDisciplina.length
                 ? daDisciplina[0].disciplinas.find(function (d) { return normalizarDisciplina(d.nome) === chave; })
@@ -581,6 +598,105 @@ function criarFormularioAvaliacao(config) {
     };
 }
 
+// ── Guia "Candidatar-se" do estudante ───────────────────────────────────
+// O estudante pede para ser tutor com a mesma conta. A coordenacao decide em
+// Aprovacoes; aprovado, ele ganha a "Area do tutor" no menu.
+function formatarDataCurta(isoDataHora) {
+    return isoDataHora ? isoDataHora.substring(0, 10).split("-").reverse().join("/") : "";
+}
+
+async function loadEstudanteCandidatar() {
+    // Busca o usuario de novo: a candidatura pode ter sido aprovada desde o login
+    const user = await loadCurrentUser(true);
+    if (!user || !temPerfil(user, "ESTUDANTE")) {
+        await requireAuth("ESTUDANTE");
+        return;
+    }
+    lembrarArea("ESTUDANTE");
+
+    initAppShell({
+        header: {
+            mode: "title",
+            title: "Candidatar-se a tutor",
+            subtitle: "Ajude outros estudantes nas disciplinas que você domina, sem precisar de outra conta."
+        }
+    });
+
+    const [candidatura, disciplinas] = await Promise.all([fetchCandidatura(), safeArray(fetchDisciplinas())]);
+    hideLoader();
+    renderCandidatura(candidatura, disciplinas);
+}
+
+function renderCandidatura(candidatura, disciplinas) {
+    const alvo = document.getElementById("candidatura");
+    const situacao = candidatura.situacao;
+    const nome = candidatura.disciplina ? candidatura.disciplina.nome : "";
+
+    if (situacao === "APROVADA") {
+        alvo.innerHTML = "<div class=\"candidatura-status\">"
+            + "<span class=\"badge success\">Aprovada</span>"
+            + "<p>Você já é tutor! Abra horários e acompanhe as solicitações na área do tutor.</p>"
+            + "<a class=\"btn\" href=\"../tutor/dashboard.html\" data-perfil=\"TUTOR\" id=\"irParaTutor\">" + icon("swap") + " Ir para a área do tutor</a>"
+            + "</div>";
+        document.getElementById("irParaTutor").addEventListener("click", function () { lembrarArea("TUTOR"); });
+        return;
+    }
+
+    if (situacao === "PENDENTE") {
+        alvo.innerHTML = "<div class=\"candidatura-status\">"
+            + "<span class=\"badge warning\">Aguardando a coordenação</span>"
+            + "<p>Você se candidatou a tutor de <strong>" + escapeHTML(nome) + "</strong>"
+            + (candidatura.solicitadaEm ? " em " + escapeHTML(formatarDataCurta(candidatura.solicitadaEm)) : "") + ".</p>"
+            + "<p class=\"muted\">Quando a coordenação aprovar, a <strong>Área do tutor</strong> aparece no seu menu.</p>"
+            + "<button class=\"btn outline-danger sm\" type=\"button\" id=\"cancelarCandidatura\">Cancelar candidatura</button>"
+            + "</div>";
+        document.getElementById("cancelarCandidatura").addEventListener("click", async function () {
+            if (!confirm("Cancelar a sua candidatura a tutor de " + nome + "?")) return;
+            try {
+                await cancelarCandidatura();
+                showFeedback("feedback", "Candidatura cancelada.", "success");
+                renderCandidatura(await fetchCandidatura(), disciplinas);
+            } catch (error) {
+                showFeedback("feedback", error.message, "error");
+            }
+        });
+        return;
+    }
+
+    // NENHUMA ou RECUSADA: formulario para (re)enviar
+    const aviso = situacao === "RECUSADA"
+        ? "<div class=\"candidatura-status\"><span class=\"badge danger\">Não aprovada</span>"
+            + "<p>A coordenação não aprovou a candidatura para <strong>" + escapeHTML(nome) + "</strong>. "
+            + "Se quiser, converse com a coordenação e envie uma nova.</p></div>"
+        : "";
+    const opcoes = disciplinas.map(function (d) {
+        return "<option value=\"" + escapeHTML(d.id) + "\">" + escapeHTML(d.nome) + "</option>";
+    }).join("");
+
+    alvo.innerHTML = aviso
+        + "<form id=\"candidaturaForm\" class=\"stack\">"
+        + "<div class=\"field\"><label for=\"candidaturaDisciplina\">Disciplina em que quer ser tutor</label>"
+        + "<select id=\"candidaturaDisciplina\" required><option value=\"\">Escolha uma disciplina</option>" + opcoes + "</select></div>"
+        + "<button class=\"btn\" type=\"submit\" id=\"enviarCandidatura\">" + icon("award") + " Enviar candidatura</button>"
+        + "</form>";
+
+    document.getElementById("candidaturaForm").addEventListener("submit", async function (event) {
+        event.preventDefault();
+        const botao = document.getElementById("enviarCandidatura");
+        const disciplinaId = Number(document.getElementById("candidaturaDisciplina").value);
+        if (!disciplinaId) return;
+        botao.disabled = true;
+        try {
+            const nova = await enviarCandidatura(disciplinaId);
+            showFeedback("feedback", "Candidatura enviada! A coordenação vai avaliar o pedido.", "success");
+            renderCandidatura(nova, disciplinas);
+        } catch (error) {
+            botao.disabled = false;
+            showFeedback("feedback", error.message, "error");
+        }
+    });
+}
+
 async function loadTutorDashboard() {
     const user = await requireAuth("TUTOR");
     if (!user) return;
@@ -794,8 +910,12 @@ function renderPedidosDisciplina(pedidos) {
 
     const rows = pedidos.map(function (pedido) {
         const quando = pedido.solicitadaEm ? pedido.solicitadaEm.substring(0, 10).split("-").reverse().join("/") : "--";
+        // Candidatura: estudante pedindo para ser tutor (aprovar libera a area do tutor)
+        const marca = pedido.candidatura
+            ? " <span class=\"badge warning\" title=\"Estudante que se candidatou a tutor pela guia Candidatar-se\">Candidatura de estudante</span>"
+            : "";
         return "<tr>"
-            + "<td>" + escapeHTML(pedido.tutorNome) + "</td>"
+            + "<td>" + escapeHTML(pedido.tutorNome) + marca + "</td>"
             + "<td>" + escapeHTML(pedido.disciplina.nome) + "</td>"
             + "<td>" + escapeHTML(quando) + "</td>"
             + "<td><div class=\"admin-actions\">"

@@ -23,10 +23,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class UsuarioService {
@@ -224,8 +227,12 @@ public class UsuarioService {
     // Lista para a tela de gestao: cada usuario com o seu tipo (tutor, estudante...)
     @Transactional(readOnly = true)
     public List<UsuarioResumoDTO> listarTodos() {
-        Set<Long> tutores = tutorRepository.findTodosUsuarioIds();
+        // Tutor = quem tem perfil de tutor e nao e estudante com candidatura pendente
         Set<Long> estudantes = estudanteRepository.findTodosUsuarioIds();
+        Set<Long> tutoresAtivos = tutorRepository.findUsuarioIdsComDisciplinaAtiva();
+        Set<Long> tutores = tutorRepository.findTodosUsuarioIds().stream()
+                .filter(id -> !estudantes.contains(id) || tutoresAtivos.contains(id))
+                .collect(Collectors.toSet());
 
         return usuarioRepository.findAll().stream()
                 .map(usuario -> paraResumo(usuario, tipoPorPerfis(usuario, tutores, estudantes)))
@@ -254,13 +261,27 @@ public class UsuarioService {
         Long tutorId = tutorRepository.findByUsuario_Id(usuario.getId())
                 .map(Tutor::getId).orElse(null);
 
+        List<UsuarioTipoEnum> perfis = new ArrayList<>();
+        if (usuario.getProfiles().contains(ProfileEnum.ADMIN)) {
+            perfis.add(UsuarioTipoEnum.ADMIN);
+        }
+        if (estudanteId != null) {
+            perfis.add(UsuarioTipoEnum.ESTUDANTE);
+        }
+        // Candidatura pendente nao libera a area do tutor; tutor sem perfil de
+        // estudante (cadastro antigo) continua com a area dele
+        if (tutorId != null && (estudanteId == null || disciplinaService.isTutorAtivo(tutorId))) {
+            perfis.add(UsuarioTipoEnum.TUTOR);
+        }
+
         return new UsuarioMeDTO(
                 usuario.getId(),
                 usuario.getNome(),
                 usuario.getEmail(),
                 tipo,
                 estudanteId,
-                tutorId);
+                tutorId,
+                perfis);
     }
 
     // Ser coordenador nao torna ninguem administrador: so o perfil ADMIN
@@ -270,12 +291,12 @@ public class UsuarioService {
             return UsuarioTipoEnum.ADMIN;
         }
 
-        if (tutorRepository.findByUsuario_Id(usuario.getId()).isPresent()) {
-            return UsuarioTipoEnum.TUTOR;
-        }
+        // Estudante que se candidatou a tutor so vira TUTOR depois da aprovacao
+        Optional<Tutor> tutor = tutorRepository.findByUsuario_Id(usuario.getId());
+        boolean estudante = estudanteRepository.findByUsuario_Id(usuario.getId()).isPresent();
 
-        if (estudanteRepository.findByUsuario_Id(usuario.getId()).isPresent()) {
-            return UsuarioTipoEnum.ESTUDANTE;
+        if (tutor.isPresent() && (!estudante || disciplinaService.isTutorAtivo(tutor.get().getId()))) {
+            return UsuarioTipoEnum.TUTOR;
         }
 
         return UsuarioTipoEnum.ESTUDANTE;

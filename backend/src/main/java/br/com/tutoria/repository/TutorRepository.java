@@ -28,4 +28,11 @@ public interface TutorRepository extends JpaRepository<Tutor, Long> {
     // IDs dos usuarios que tem perfil de tutor (para listar o tipo de cada usuario)
     @Query("SELECT x.usuario.id FROM Tutor x")
     Set<Long> findTodosUsuarioIds();
+
+    // Usuarios que sao tutores ativos (ao menos uma disciplina aprovada)
+    @Query("""
+            SELECT DISTINCT td.tutor.usuario.id FROM TutorDisciplina td
+            WHERE td.status = br.com.tutoria.model.enums.TutorDisciplinaStatusEnum.ATIVA
+            """)
+    Set<Long> findUsuarioIdsComDisciplinaAtiva();
 }

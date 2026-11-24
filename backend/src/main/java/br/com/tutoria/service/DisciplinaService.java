@@ -139,6 +139,14 @@ public class DisciplinaService {
                 .toList();
     }
 
+    // Tutor "ativo" e o que tem ao menos uma disciplina aprovada. Um estudante que
+    // se candidatou a tutor ja tem o perfil Tutor, mas so com o pedido PENDENTE:
+    // ate a coordenacao aprovar, ele nao aparece na busca nem abre horarios.
+    @Transactional(readOnly = true)
+    public boolean isTutorAtivo(Long tutorId) {
+        return tutorDisciplinaRepository.countByTutor_IdAndStatus(tutorId, TutorDisciplinaStatusEnum.ATIVA) > 0;
+    }
+
     // Disciplinas ativas de varios tutores numa consulta so
     @Transactional(readOnly = true)
     public Map<Long, List<DisciplinaDTO>> ativasPorTutor(Collection<Long> tutorIds) {
@@ -193,10 +201,15 @@ public class DisciplinaService {
 
     // ── Pedidos de disciplina (coordenacao) ──────────────────────────────────
 
+    // Pedido de quem ainda nao tem nenhuma disciplina ativa e uma candidatura:
+    // um estudante pedindo para ser tutor. Aprovar o pedido torna o tutor ativo.
     @Transactional(readOnly = true)
     public List<PedidoDisciplinaDTO> pedidosPendentes() {
-        return tutorDisciplinaRepository.findByStatusComTutor(TutorDisciplinaStatusEnum.PENDENTE).stream()
-                .map(PedidoDisciplinaDTO::de)
+        List<TutorDisciplina> pedidos = tutorDisciplinaRepository.findByStatusComTutor(TutorDisciplinaStatusEnum.PENDENTE);
+        Map<Long, List<DisciplinaDTO>> ativas =
+                ativasPorTutor(pedidos.stream().map(p -> p.getTutor().getId()).distinct().toList());
+        return pedidos.stream()
+                .map(p -> PedidoDisciplinaDTO.de(p, !ativas.containsKey(p.getTutor().getId())))
                 .toList();
     }
 

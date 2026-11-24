@@ -79,23 +79,30 @@ public class NotificacaoService {
             return avisos;
         }
 
-        long naoLidas = conversaService.totalNaoLidas(usuarioLogado.getId());
-        if (naoLidas > 0) {
-            avisos.add(new NotificacaoDTO("MENSAGEM",
-                    naoLidas == 1 ? "1 mensagem não lida" : naoLidas + " mensagens não lidas",
-                    "Abra o chat para responder.", "mensagens.html", naoLidas));
-        }
+        // Quem e estudante e tutor recebe os avisos das duas areas; cada link leva
+        // a pagina da area certa (o frontend completa com "../")
+        Long usuarioId = usuarioLogado.getId();
+        tutorRepository.findByUsuario_Id(usuarioId).ifPresent(tutor -> {
+            avisoDeMensagens(avisos, conversaService.totalNaoLidas(usuarioId, true), "tutor/", " como tutor");
+            avisosDoTutor(avisos, agendamentoRepository.findByTutor_IdOrderByDataAscHoraAsc(tutor.getId()), agora);
+        });
 
-        tutorRepository.findByUsuario_Id(usuarioLogado.getId())
-                .ifPresent(tutor -> avisosDoTutor(avisos,
-                        agendamentoRepository.findByTutor_IdOrderByDataAscHoraAsc(tutor.getId()), agora));
-
-        estudanteRepository.findByUsuario_Id(usuarioLogado.getId())
-                .ifPresent(estudante -> avisosDoEstudante(avisos,
-                        agendamentoRepository.findByEstudante_IdOrderByDataAscHoraAsc(estudante.getId()),
-                        avaliacaoRepository.findByEstudante_Id(estudante.getId()), agora));
+        estudanteRepository.findByUsuario_Id(usuarioId).ifPresent(estudante -> {
+            avisoDeMensagens(avisos, conversaService.totalNaoLidas(usuarioId, false), "estudante/", "");
+            avisosDoEstudante(avisos,
+                    agendamentoRepository.findByEstudante_IdOrderByDataAscHoraAsc(estudante.getId()),
+                    avaliacaoRepository.findByEstudante_Id(estudante.getId()), agora);
+        });
 
         return avisos;
+    }
+
+    private static void avisoDeMensagens(List<NotificacaoDTO> avisos, long naoLidas, String area, String papel) {
+        if (naoLidas > 0) {
+            avisos.add(new NotificacaoDTO("MENSAGEM",
+                    (naoLidas == 1 ? "1 mensagem não lida" : naoLidas + " mensagens não lidas") + papel,
+                    "Abra o chat para responder.", area + "mensagens.html", naoLidas));
+        }
     }
 
     private void avisosDaCoordenacao(List<NotificacaoDTO> avisos) {
@@ -103,14 +110,15 @@ public class NotificacaoService {
         if (cadastros > 0) {
             avisos.add(new NotificacaoDTO("CADASTRO_PENDENTE",
                     cadastros == 1 ? "1 cadastro aguardando aprovação" : cadastros + " cadastros aguardando aprovação",
-                    "Aprove ou recuse os novos tutores.", "aprovacoes.html", cadastros));
+                    "Aprove ou recuse os novos tutores.", "admin/aprovacoes.html", cadastros));
         }
 
         int pedidos = tutorDisciplinaRepository.findByStatusComTutor(TutorDisciplinaStatusEnum.PENDENTE).size();
         if (pedidos > 0) {
             avisos.add(new NotificacaoDTO("DISCIPLINA_PENDENTE",
                     pedidos == 1 ? "1 pedido de disciplina" : pedidos + " pedidos de disciplina",
-                    "Tutores pediram para atender novas disciplinas.", "aprovacoes.html", pedidos));
+                    "Novas disciplinas pedidas por tutores e candidaturas de estudantes a tutor.",
+                    "admin/aprovacoes.html", pedidos));
         }
     }
 
@@ -121,12 +129,12 @@ public class NotificacaoService {
         if (pendentes > 0) {
             avisos.add(new NotificacaoDTO("SOLICITACAO_PENDENTE",
                     pendentes == 1 ? "1 solicitação aguardando você" : pendentes + " solicitações aguardando você",
-                    "Confirme ou recuse os pedidos de tutoria.", "solicitacoes.html", pendentes));
+                    "Confirme ou recuse os pedidos de tutoria.", "tutor/solicitacoes.html", pendentes));
         }
 
         proximasConfirmadas(agenda, agora).forEach(a -> avisos.add(new NotificacaoDTO("LEMBRETE",
                 "Tutoria " + quando(a, agora.toLocalDate()),
-                "Com " + nomeDoEstudante(a) + disciplina(a) + ".", "agenda.html", 0)));
+                "Com " + nomeDoEstudante(a) + disciplina(a) + ".", "tutor/agenda.html", 0)));
     }
 
     private void avisosDoEstudante(List<NotificacaoDTO> avisos, List<Agendamento> agenda,
@@ -135,7 +143,7 @@ public class NotificacaoService {
         proximasConfirmadas(agenda, agora).forEach(a -> avisos.add(new NotificacaoDTO("LEMBRETE",
                 "Tutoria confirmada " + quando(a, agora.toLocalDate()),
                 "Com " + a.getTutor().getUsuario().getNome() + disciplina(a) + ".",
-                "meus-agendamentos.html", 0)));
+                "estudante/meus-agendamentos.html", 0)));
 
         // Mesma regra do AvaliacaoService: tutoria que ja aconteceu e ainda nao foi avaliada
         Set<Long> avaliadas = avaliacoes.stream()
@@ -151,7 +159,7 @@ public class NotificacaoService {
         if (paraAvaliar > 0) {
             avisos.add(new NotificacaoDTO("AVALIACAO_PENDENTE",
                     paraAvaliar == 1 ? "1 tutoria para avaliar" : paraAvaliar + " tutorias para avaliar",
-                    "Conte como foi: a avaliação ajuda outros estudantes.", "avaliacoes.html", paraAvaliar));
+                    "Conte como foi: a avaliação ajuda outros estudantes.", "estudante/avaliacoes.html", paraAvaliar));
         }
     }
 

@@ -258,6 +258,21 @@ seguintes sao normais. O limite e de 60 minutos de CPU por dia.
    `JWT_SECRET` (nao serve como token de acesso) e carrega uma impressao da senha
    atual, que deixa de bater quando a senha muda.
 
+## Estudante que tambem e tutor
+
+- Na guia **Candidatar-se**, o estudante escolhe uma disciplina e pede para ser
+  tutor com a mesma conta (`POST /estudante/me/candidatura`; `GET` mostra a
+  situacao e `DELETE` cancela). A conta continua ativa como estudante.
+- A coordenacao decide em **Aprovacoes > Pedidos de disciplina**, onde o pedido
+  aparece como *Candidatura de estudante*. Aprovado, `GET /usuario/me` passa a
+  devolver `perfis: ["ESTUDANTE", "TUTOR"]` e o menu ganha **Area do tutor** /
+  **Area do estudante**.
+- Tutor sem disciplina aprovada nao aparece na busca, nao abre horarios e nao
+  recebe conversas.
+- Quem tem os dois perfis nao solicita o proprio horario nem tem sessao de tutor
+  e tutoria de estudante no mesmo horario. Agenda e conversas sao separadas por
+  area (`?perfil=TUTOR|ESTUDANTE` em `/agendamento/minha-agenda` e `/conversa`).
+
 ## Mensagens, notificacoes e ajuda
 
 - **Chat:** guia **Mensagens** do estudante e do tutor. Uma conversa por dupla

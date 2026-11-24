@@ -37,6 +37,28 @@ function redirectByTipo(tipo) {
     window.location.href = resolveRelativePath(target);
 }
 
+// ── Contas com mais de um perfil (estudante aprovado como tutor) ──────────
+// "perfis" vem do GET /usuario/me. Sessoes antigas, sem o campo, usam o tipo.
+function perfisDoUsuario(user) {
+    if (!user) return [];
+    return Array.isArray(user.perfis) && user.perfis.length ? user.perfis : [user.tipo];
+}
+
+function temPerfil(user, perfil) {
+    return perfisDoUsuario(user).indexOf(perfil) !== -1;
+}
+
+// Area em que a pessoa estava da ultima vez (se ainda tiver esse perfil)
+function areaInicial(user) {
+    let preferida = null;
+    try { preferida = localStorage.getItem("perfilAtivo"); } catch (_) { /* sem storage */ }
+    return preferida && temPerfil(user, preferida) ? preferida : user.tipo;
+}
+
+function lembrarArea(perfil) {
+    try { localStorage.setItem("perfilAtivo", perfil); } catch (_) { /* sem storage */ }
+}
+
 async function loadCurrentUser(forceRefresh) {
     if (!getToken()) {
         return null;
@@ -84,13 +106,19 @@ async function requireAuth(expectedTipo) {
     }
 
     try {
-        const user = await loadCurrentUser(false);
+        let user = await loadCurrentUser(false);
 
-        if (expectedTipo && user.tipo !== expectedTipo) {
-            redirectByTipo(user.tipo);
+        // O perfil pode ter mudado desde o login (ex.: candidatura aprovada):
+        // antes de mandar a pessoa embora, confere de novo no servidor
+        if (expectedTipo && !temPerfil(user, expectedTipo)) {
+            user = await loadCurrentUser(true);
+        }
+        if (expectedTipo && !temPerfil(user, expectedTipo)) {
+            redirectByTipo(areaInicial(user));
             return null;
         }
 
+        if (expectedTipo) lembrarArea(expectedTipo);
         return user;
     } catch (error) {
         logout();
@@ -118,7 +146,7 @@ function esconderFeedback() {
 async function concluirLogin() {
     const user = await loadCurrentUser(true);
     await resolveProfileIds(user);
-    redirectByTipo(user.tipo);
+    redirectByTipo(areaInicial(user));
 }
 
 async function handleLoginSubmit(event) {
@@ -439,7 +467,7 @@ async function bootstrapIndexRedirect() {
     try {
         const user = await loadCurrentUser(true);
         await resolveProfileIds(user);
-        window.location.href = DASHBOARD_PATHS[user.tipo] || DASHBOARD_PATHS.ESTUDANTE;
+        window.location.href = DASHBOARD_PATHS[areaInicial(user)] || DASHBOARD_PATHS.ESTUDANTE;
     } catch (error) {
         window.location.href = "login.html";
     }
