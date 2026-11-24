@@ -68,7 +68,7 @@ classDiagram
         -Tutor tutor
         -Estudante estudante
         -Disciplina disciplina
-        +disponibilizar(tutor, data, hora, observacoes)$ Agendamento
+        +disponibilizar(tutor, disciplina, data, hora, observacoes)$ Agendamento
         +agendar(estudante, modalidade, disciplina) boolean
         +confirmar() void
         +concluir() void
@@ -204,6 +204,11 @@ classDiagram
   encerra (→ `CANCELADO`). O status so muda por esses metodos (nao ha
   setters), entao e impossivel, por exemplo, confirmar um horario que ninguem
   solicitou.
+- **O horario nasce com a disciplina.** O tutor que atende varias disciplinas
+  escolhe, ao abrir o horario, para qual delas ele e; o horario aparece aos
+  estudantes so nessa disciplina e a mantem se o estudante desistir. Horarios
+  antigos, criados sem disciplina, continuam valendo para todas as do tutor
+  (por isso `Disciplina "0..1"` em `Agendamento`).
 - **Uma avaliacao por tutoria.** A regra e conferida no `AvaliacaoService`;
   no banco a coluna aceita nulo por causa de avaliacoes antigas, feitas antes
   da regra.

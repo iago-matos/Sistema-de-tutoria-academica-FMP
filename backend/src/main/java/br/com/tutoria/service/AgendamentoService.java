@@ -74,8 +74,9 @@ public class AgendamentoService {
                     "Você poderá abrir horários assim que a coordenação aprovar a sua candidatura a tutor");
         }
 
+        Disciplina disciplina = disciplinaDoHorario(tutor, dados.disciplinaId());
         Agendamento novo = Agendamento.disponibilizar(
-                tutor, dados.data(), dados.hora(), dados.observacoes(), dados.linkReuniao());
+                tutor, disciplina, dados.data(), dados.hora(), dados.observacoes(), dados.linkReuniao());
         exigirNoFuturo(novo);
         exigirAgendaDoTutorLivre(novo);
         // Quem tambem e estudante nao pode dar tutoria enquanto assiste a outra
@@ -104,7 +105,9 @@ public class AgendamentoService {
         tutorRepository.findByUsuario_Id(estudante.getUsuario().getId())
                 .ifPresent(comoTutor -> exigirAgendaDoTutorLivre(comoTutor.getId(), agendamento,
                         "Nesse horário você tem uma sessão na sua agenda de tutor"));
-        Disciplina disciplina = escolherDisciplina(agendamento.getTutor(), disciplinaId);
+        Disciplina disciplina = agendamento.getDisciplina() != null
+                ? confirmarDisciplinaDoHorario(agendamento, disciplinaId)
+                : escolherDisciplina(agendamento.getTutor(), disciplinaId);
 
         if (!agendamento.agendar(estudante, converterModalidade(modalidade), disciplina)) {
             throw new IllegalArgumentException("Este horário não está mais disponível");
@@ -113,8 +116,40 @@ public class AgendamentoService {
         return buscarPorId(agendamentoId);
     }
 
-    // A disciplina precisa estar entre as ativas do tutor. Sem disciplinaId,
-    // vale a unica que o tutor atende; com mais de uma, o estudante escolhe.
+    // O tutor escolhe a disciplina ao abrir o horario, entre as ativas dele.
+    // Sem disciplinaId, vale a unica que ele atende; com mais de uma, e obrigatorio.
+    private Disciplina disciplinaDoHorario(Tutor tutor, Long disciplinaId) {
+        List<Disciplina> ativas = disciplinaService.ativasDoTutor(tutor.getId());
+        if (disciplinaId == null) {
+            if (ativas.size() != 1) {
+                throw new IllegalArgumentException("Escolha a disciplina deste horário");
+            }
+            return ativas.get(0);
+        }
+        return ativas.stream()
+                .filter(d -> d.getId().equals(disciplinaId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Você não atende essa disciplina"));
+    }
+
+    // Horario com disciplina definida pelo tutor: o estudante nao troca, e ela
+    // precisa continuar ativa (o tutor pode ter deixado de atende-la)
+    private Disciplina confirmarDisciplinaDoHorario(Agendamento agendamento, Long disciplinaId) {
+        Disciplina doHorario = agendamento.getDisciplina();
+        if (disciplinaId != null && !disciplinaId.equals(doHorario.getId())) {
+            throw new IllegalArgumentException("Este horário é de " + doHorario.getNome());
+        }
+        boolean ativa = disciplinaService.ativasDoTutor(agendamento.getTutor().getId()).stream()
+                .anyMatch(d -> d.getId().equals(doHorario.getId()));
+        if (!ativa) {
+            throw new IllegalArgumentException("O tutor não atende mais " + doHorario.getNome());
+        }
+        return doHorario;
+    }
+
+    // Horario antigo, sem disciplina: a disciplina precisa estar entre as ativas
+    // do tutor. Sem disciplinaId, vale a unica que o tutor atende; com mais de uma,
+    // o estudante escolhe.
     private Disciplina escolherDisciplina(Tutor tutor, Long disciplinaId) {
         List<Disciplina> ativas = disciplinaService.ativasDoTutor(tutor.getId());
         if (disciplinaId == null) {

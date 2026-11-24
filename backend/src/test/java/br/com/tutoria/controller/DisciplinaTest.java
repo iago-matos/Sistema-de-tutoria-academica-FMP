@@ -268,8 +268,9 @@ class DisciplinaTest extends IntegracaoTestBase {
                 .andExpect(jsonPath("$.disciplina.nome").value("Banco de Dados"));
     }
 
+    // A vaga volta a ficar livre na mesma disciplina (a do horario)
     @Test
-    void desistirLiberaOHorarioSemDisciplina() throws Exception {
+    void desistirLiberaOHorarioNaMesmaDisciplina() throws Exception {
         Agendamento horario = horarioLivre(criarTutor("tutor@teste.com"));
         Estudante aluno = criarEstudante("aluno@teste.com");
         solicitar(horario, aluno, Map.of()).andExpect(status().isOk());
@@ -278,7 +279,8 @@ class DisciplinaTest extends IntegracaoTestBase {
                         .header("Authorization", tokenDe(aluno.getUsuario())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("DISPONIVEL"))
-                .andExpect(jsonPath("$.disciplina").doesNotExist());
+                .andExpect(jsonPath("$.estudante").doesNotExist())
+                .andExpect(jsonPath("$.disciplina.nome").value("Algoritmos"));
     }
 
     @Test
